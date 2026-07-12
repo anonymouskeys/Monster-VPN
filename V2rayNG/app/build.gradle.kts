@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.v2ray.ang"
+    namespace = "com.anonymouskeys.monstervpn"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.v2ray.ang"
+        applicationId = "com.anonymouskeys.monstervpn"
         minSdk = 24
         targetSdk = 37
         versionCode = 736
