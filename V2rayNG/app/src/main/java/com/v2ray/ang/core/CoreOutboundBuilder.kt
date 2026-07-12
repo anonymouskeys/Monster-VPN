@@ -316,6 +316,15 @@ object CoreOutboundBuilder {
      * @return The Server Name Indication (SNI) value to use, or null if not applicable
      */
     fun populateTransportSettings(streamSettings: OutboundBean.StreamSettingsBean, profileItem: ProfileItem): String? {
+        if (!profileItem.finalMask.isNullOrBlank()) {
+            if (profileItem.network == "grpc") {
+                // Отключаем фрагментацию для gRPC, чтобы избежать нестабильности транспорта
+            } else {
+                try {
+                    streamSettings.finalmask = com.google.gson.JsonParser.parseString(profileItem.finalMask)
+                } catch (e: Exception) { e.printStackTrace() }
+            }
+        }
         val transport = profileItem.network.orEmpty()
         val headerType = profileItem.headerType
         val host = profileItem.host
