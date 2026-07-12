@@ -211,4 +211,16 @@
             android:textColor="@android:color/darker_gray"
             android:textSize="12sp" />
     </LinearLayout>
+    <com.google.android.material.textfield.TextInputLayout 
+        android:layout_width="match_parent" 
+        android:layout_height="wrap_content" 
+        android:layout_marginTop="8dp"> 
+        <com.google.android.material.textfield.TextInputEditText 
+            android:id="@+id/et_final_mask" 
+            android:layout_width="match_parent" 
+            android:layout_height="wrap_content" 
+            android:hint="@string/final_mask_title" 
+            android:inputType="textMultiLine" 
+            android:minLines="4"/> 
+    </com.google.android.material.textfield.TextInputLayout>
 </LinearLayout>
