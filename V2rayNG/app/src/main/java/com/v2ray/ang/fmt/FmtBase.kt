@@ -56,6 +56,7 @@ open class FmtBase {
         config.headerType = queryParam["headerType"]
         config.host = queryParam["host"]
         config.path = queryParam["path"]
+        config.finalMask = queryParam["finalMask"] ?: ""
 
         config.seed = queryParam["seed"]
         config.kcpMtu = queryParam["mtu"]?.toIntOrNull()
@@ -140,11 +141,13 @@ open class FmtBase {
             NetworkType.WS, NetworkType.HTTP_UPGRADE -> {
                 config.host?.nullIfBlank()?.let { dicQuery["host"] = it }
                 config.path?.nullIfBlank()?.let { dicQuery["path"] = it }
+                config.finalMask?.nullIfBlank()?.let { dicQuery["finalMask"] = it }
             }
 
             NetworkType.XHTTP -> {
                 config.host?.nullIfBlank()?.let { dicQuery["host"] = it }
                 config.path?.nullIfBlank()?.let { dicQuery["path"] = it }
+                config.finalMask?.nullIfBlank()?.let { dicQuery["finalMask"] = it }
                 config.xhttpMode?.nullIfBlank()?.let { dicQuery["mode"] = it }
                 config.xhttpExtra?.nullIfBlank()?.let { dicQuery["extra"] = it }
             }
@@ -153,6 +156,7 @@ open class FmtBase {
                 dicQuery["type"] = "http"
                 config.host?.nullIfBlank()?.let { dicQuery["host"] = it }
                 config.path?.nullIfBlank()?.let { dicQuery["path"] = it }
+                config.finalMask?.nullIfBlank()?.let { dicQuery["finalMask"] = it }
             }
 
 //            NetworkType.QUIC -> {
