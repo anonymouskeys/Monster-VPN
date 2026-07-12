@@ -482,4 +482,5 @@
         <item>WebDAV</item>
     </string-array>
 
+    <string name="final_mask_title">FinalMask raw JSON, format: { FinalMaskObject }</string>
 </resources>
