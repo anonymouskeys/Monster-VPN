@@ -274,6 +274,14 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             true
         }
 
+            R.id.import_from_file -> {
+                importFromFile()
+                true
+            }
+            R.id.export_to_file -> {
+                exportToFile()
+                true
+            }
         R.id.import_clipboard -> {
             importClipboard()
             true
@@ -422,6 +430,56 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
      * import config from clipboard
      */
     private fun importClipboard()
+    private val importFileLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
+        if (uri == null) return@registerForActivityResult
+        try {
+            contentResolver.openInputStream(uri)?.bufferedReader()?.use { reader ->
+                val content = reader.readText()
+                val (count, _) = com.v2ray.ang.handler.AngConfigManager.importBatchConfig(content, "", false)
+                if (count > 0) {
+                    mainViewModel.reloadServerList()
+                    android.widget.Toast.makeText(this, "Успех! Импортировано серверов: $count", android.widget.Toast.LENGTH_LONG).show()
+                } else {
+                    android.widget.Toast.makeText(this, "В файле не найдено рабочих конфигураций", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            android.widget.Toast.makeText(this, "Ошибка чтения файла базы", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val exportFileLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        if (uri == null) return@registerForActivityResult
+        try {
+            contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { writer ->
+                // Получаем все серверы из базы
+                val serverList = mainViewModel.serverList
+                var count = 0
+                for (server in serverList) {
+                    val conf = com.v2ray.ang.handler.AngConfigManager.shareConfig(server.guid)
+                    if (conf.isNotBlank()) {
+                        writer.write(conf)
+                        writer.newLine()
+                        count++
+                    }
+                }
+                android.widget.Toast.makeText(this, "Экспорт завершен: $count серверов", android.widget.Toast.LENGTH_LONG).show()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            android.widget.Toast.makeText(this, "Ошибка записи файла", android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun importFromFile() {
+        importFileLauncher.launch("*/*")
+    }
+
+    private fun exportToFile() {
+        exportFileLauncher.launch("monster_vpn_configs.txt")
+    }
+
             : Boolean {
         try {
             val clipboard = Utils.getClipboard(this)
