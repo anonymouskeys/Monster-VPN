@@ -1,4 +1,5 @@
 package com.v2ray.ang.ui
+import com.anonymouskeys.monstervpn.R
 
 import android.content.Intent
 import android.graphics.BitmapFactory
@@ -6,7 +7,6 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.R
 import com.v2ray.ang.databinding.ActivityNoneBinding
 import com.v2ray.ang.extension.toast
 import com.v2ray.ang.handler.MmkvManager
