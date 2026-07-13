@@ -1,6 +1,5 @@
 package com.v2ray.ang.ui
 import com.anonymouskeys.monstervpn.R
-import com.anonymouskeys.monstervpn.databinding.*
 
 import android.os.Bundle
 import android.text.TextUtils
