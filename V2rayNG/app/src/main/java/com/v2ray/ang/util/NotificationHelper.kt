@@ -1,5 +1,8 @@
 package com.v2ray.ang.util
 
+import com.v2ray.ang.R
+import com.v2ray.ang.BuildConfig
+
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,7 +10,6 @@ import android.app.Service
 import android.content.Context
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import com.v2ray.ang.R
 import com.v2ray.ang.enums.NotificationChannelType
 
 /**
