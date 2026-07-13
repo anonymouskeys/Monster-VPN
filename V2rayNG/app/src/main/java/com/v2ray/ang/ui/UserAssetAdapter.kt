@@ -1,13 +1,13 @@
 package com.v2ray.ang.ui
+import com.anonymouskeys.monstervpn.R
+import com.anonymouskeys.monstervpn.databinding.ItemRecyclerUserAssetBinding
 
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.v2ray.ang.R
 import com.v2ray.ang.contracts.BaseAdapterListener
-import com.v2ray.ang.databinding.ItemRecyclerUserAssetBinding
 import com.v2ray.ang.extension.toTrafficString
 import com.v2ray.ang.viewmodel.UserAssetViewModel
 import java.io.File
