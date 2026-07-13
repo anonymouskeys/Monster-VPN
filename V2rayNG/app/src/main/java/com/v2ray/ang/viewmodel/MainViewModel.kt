@@ -1,5 +1,8 @@
 package com.v2ray.ang.viewmodel
 
+import com.v2ray.ang.R
+import com.v2ray.ang.BuildConfig
+
 import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -12,7 +15,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.v2ray.ang.AngApplication
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.R
 import com.v2ray.ang.dto.GroupMapItem
 import com.v2ray.ang.dto.SubscriptionUpdateResult
 import com.v2ray.ang.dto.TestServiceMessage
