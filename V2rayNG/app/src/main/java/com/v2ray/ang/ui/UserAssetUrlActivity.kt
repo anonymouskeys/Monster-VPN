@@ -1,6 +1,8 @@
 package com.v2ray.ang.ui
 import com.anonymouskeys.monstervpn.R
 import com.anonymouskeys.monstervpn.BuildConfig
+import com.anonymouskeys.monstervpn.R
+import com.anonymouskeys.monstervpn.BuildConfig
 
 import android.os.Bundle
 import android.text.TextUtils
@@ -18,6 +20,8 @@ import com.v2ray.ang.util.Utils
 import java.io.File
 
 class UserAssetUrlActivity : BaseActivity() {
+    private val etRemarks by lazy { findViewById<android.widget.EditText>(R.id.et_remarks) }
+    private val etUrl by lazy { findViewById<android.widget.EditText>(R.id.et_url) }
     // Receive QRcode URL from UserAssetActivity
     companion object {
         const val ASSET_URL_QRCODE = "ASSET_URL_QRCODE"
