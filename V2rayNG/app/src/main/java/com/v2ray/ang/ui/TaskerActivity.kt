@@ -1,5 +1,6 @@
 package com.v2ray.ang.ui
 import com.anonymouskeys.monstervpn.R
+import com.anonymouskeys.monstervpn.databinding.*
 
 import android.content.Intent
 import android.os.Bundle
@@ -10,7 +11,6 @@ import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.ListView
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.databinding.ActivityTaskerBinding
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.util.LogUtil
 
@@ -55,7 +55,7 @@ class TaskerActivity : BaseActivity() {
             if (switch == null || TextUtils.isEmpty(guid)) {
                 return
             } else {
-                binding.findViewById<android.widget.CompoundButton>(R.id.switchStartService).isChecked = switch
+                binding.switchStartService.isChecked = switch
                 val pos = lstGuid.indexOf(guid.toString())
                 if (pos >= 0) {
                     listview?.setItemChecked(pos, true)
@@ -74,12 +74,12 @@ class TaskerActivity : BaseActivity() {
         }
 
         val extraBundle = Bundle()
-        extraBundle.putBoolean(AppConfig.TASKER_EXTRA_BUNDLE_SWITCH, binding.findViewById<android.widget.CompoundButton>(R.id.switchStartService).isChecked)
+        extraBundle.putBoolean(AppConfig.TASKER_EXTRA_BUNDLE_SWITCH, binding.switchStartService.isChecked)
         extraBundle.putString(AppConfig.TASKER_EXTRA_BUNDLE_GUID, lstGuid[position])
         val intent = Intent()
 
         val remarks = lstData[position]
-        val blurb = if (binding.findViewById<android.widget.CompoundButton>(R.id.switchStartService).isChecked) {
+        val blurb = if (binding.switchStartService.isChecked) {
             "Start $remarks"
         } else {
             "Stop $remarks"
