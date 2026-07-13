@@ -1,4 +1,6 @@
 package com.v2ray.ang.ui
+import com.anonymouskeys.monstervpn.R
+import com.anonymouskeys.monstervpn.databinding.*
 
 import android.graphics.Color
 import android.text.TextUtils
@@ -7,7 +9,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.v2ray.ang.contracts.BaseAdapterListener
-import com.v2ray.ang.databinding.ItemRecyclerSubSettingBinding
 import com.v2ray.ang.helper.ItemTouchHelperAdapter
 import com.v2ray.ang.helper.ItemTouchHelperViewHolder
 import com.v2ray.ang.util.Utils
