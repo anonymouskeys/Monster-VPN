@@ -1,4 +1,6 @@
 package com.v2ray.ang.ui
+import com.anonymouskeys.monstervpn.R
+import com.anonymouskeys.monstervpn.databinding.*
 
 import android.os.Bundle
 import android.view.View
@@ -9,7 +11,6 @@ import androidx.preference.ListPreference
 import androidx.preference.PreferenceFragmentCompat
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.VPN
-import com.v2ray.ang.R
 import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.helper.MmkvPreferenceDataStore
