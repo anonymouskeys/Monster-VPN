@@ -1,4 +1,6 @@
 package com.v2ray.ang.ui
+import com.anonymouskeys.monstervpn.R
+import com.anonymouskeys.monstervpn.databinding.*
 
 import android.os.Bundle
 import android.text.TextUtils
@@ -6,8 +8,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AlertDialog
-import com.v2ray.ang.R
-import com.v2ray.ang.databinding.ActivityServerGroupBinding
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.extension.isNotNullEmpty
@@ -57,7 +57,7 @@ class ServerGroupActivity : BaseActivity() {
         binding.spPolicyGroupType.setSelection(type)
 
         val pos = subIds.indexOf(config.policyGroupSubscriptionId ?: "").let { if (it >= 0) it else 0 }
-        binding.spPolicyGroupSubId.setSelection(pos)
+        binding.findViewById<android.widget.Spinner>(R.id.spPolicyGroupSubId).setSelection(pos)
 
         return true
     }
@@ -71,7 +71,7 @@ class ServerGroupActivity : BaseActivity() {
 
         if (subscriptionId.isNotNullEmpty()) {
             val pos = subIds.indexOf(subscriptionId).let { if (it >= 0) it else 0 }
-            binding.spPolicyGroupSubId.setSelection(pos)
+            binding.findViewById<android.widget.Spinner>(R.id.spPolicyGroupSubId).setSelection(pos)
         }
         return true
     }
@@ -91,14 +91,14 @@ class ServerGroupActivity : BaseActivity() {
 
         config.policyGroupType = binding.spPolicyGroupType.selectedItemPosition.toString()
 
-        val selPos = binding.spPolicyGroupSubId.selectedItemPosition
+        val selPos = binding.findViewById<android.widget.Spinner>(R.id.spPolicyGroupSubId).selectedItemPosition
         config.policyGroupSubscriptionId = if (selPos >= 0 && selPos < subIds.size) subIds[selPos] else null
 
         if (config.subscriptionId.isEmpty() && !subscriptionId.isNullOrEmpty()) {
             config.subscriptionId = subscriptionId.orEmpty()
         }
 
-        config.description = "${binding.spPolicyGroupType.selectedItem} - ${binding.spPolicyGroupSubId.selectedItem} - ${config.policyGroupFilter}"
+        config.description = "${binding.spPolicyGroupType.selectedItem} - ${binding.findViewById<android.widget.Spinner>(R.id.spPolicyGroupSubId).selectedItem} - ${config.policyGroupFilter}"
 
         MmkvManager.encodeServerConfig(editGuid, config)
         if (isRunning) {
@@ -142,7 +142,7 @@ class ServerGroupActivity : BaseActivity() {
         }
         val subAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, displayList)
         subAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.spPolicyGroupSubId.adapter = subAdapter
+        binding.findViewById<android.widget.Spinner>(R.id.spPolicyGroupSubId).adapter = subAdapter
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
