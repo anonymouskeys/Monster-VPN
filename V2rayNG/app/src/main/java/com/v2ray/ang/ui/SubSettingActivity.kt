@@ -1,4 +1,6 @@
 package com.v2ray.ang.ui
+import com.anonymouskeys.monstervpn.R
+import com.anonymouskeys.monstervpn.databinding.*
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -12,10 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.R
 import com.v2ray.ang.contracts.BaseAdapterListener
-import com.v2ray.ang.databinding.ActivitySubSettingBinding
-import com.v2ray.ang.databinding.ItemQrcodeBinding
 import com.v2ray.ang.extension.toast
 import com.v2ray.ang.handler.AngConfigManager
 import com.v2ray.ang.handler.MmkvManager
