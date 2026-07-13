@@ -1,8 +1,5 @@
 package com.v2ray.ang.ui
 import com.anonymouskeys.monstervpn.R
-import com.anonymouskeys.monstervpn.BuildConfig
-import com.anonymouskeys.monstervpn.R
-import com.anonymouskeys.monstervpn.BuildConfig
 
 import android.os.Bundle
 import android.text.TextUtils
@@ -10,6 +7,7 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AlertDialog
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.R
 import com.v2ray.ang.databinding.ActivityUserAssetUrlBinding
 import com.v2ray.ang.dto.entities.AssetUrlItem
 import com.v2ray.ang.extension.toast
@@ -20,8 +18,6 @@ import com.v2ray.ang.util.Utils
 import java.io.File
 
 class UserAssetUrlActivity : BaseActivity() {
-    private val etRemarks by lazy { findViewById<android.widget.EditText>(R.id.et_remarks) }
-    private val etUrl by lazy { findViewById<android.widget.EditText>(R.id.et_url) }
     // Receive QRcode URL from UserAssetActivity
     companion object {
         const val ASSET_URL_QRCODE = "ASSET_URL_QRCODE"
@@ -46,8 +42,8 @@ class UserAssetUrlActivity : BaseActivity() {
         when {
             assetItem != null -> bindingAsset(assetItem)
             assetUrlQrcode != null -> {
-                binding.findViewById<android.widget.EditText>(R.id.etRemarks).setText(assetNameQrcode)
-                binding.findViewById<android.widget.EditText>(R.id.etUrl).setText(assetUrlQrcode)
+                findViewById<android.widget.EditText>(R.id.et_remarks).setText(assetNameQrcode)
+                findViewById<android.widget.EditText>(R.id.et_url).setText(assetUrlQrcode)
             }
 
             else -> clearAsset()
@@ -58,8 +54,8 @@ class UserAssetUrlActivity : BaseActivity() {
      * bingding seleced asset config
      */
     private fun bindingAsset(assetItem: AssetUrlItem): Boolean {
-        binding.findViewById<android.widget.EditText>(R.id.etRemarks).text = Utils.getEditable(assetItem.remarks)
-        binding.findViewById<android.widget.EditText>(R.id.etUrl).text = Utils.getEditable(assetItem.url)
+        findViewById<android.widget.EditText>(R.id.et_remarks).text = Utils.getEditable(assetItem.remarks)
+        findViewById<android.widget.EditText>(R.id.et_url).text = Utils.getEditable(assetItem.url)
         return true
     }
 
@@ -67,8 +63,8 @@ class UserAssetUrlActivity : BaseActivity() {
      * clear or init asset config
      */
     private fun clearAsset(): Boolean {
-        binding.findViewById<android.widget.EditText>(R.id.etRemarks).text = null
-        binding.findViewById<android.widget.EditText>(R.id.etUrl).text = null
+        findViewById<android.widget.EditText>(R.id.et_remarks).text = null
+        findViewById<android.widget.EditText>(R.id.et_url).text = null
         return true
     }
 
@@ -93,8 +89,8 @@ class UserAssetUrlActivity : BaseActivity() {
             assetItem = AssetUrlItem()
         }
 
-        assetItem.remarks = binding.findViewById<android.widget.EditText>(R.id.etRemarks).text.toString()
-        assetItem.url = binding.findViewById<android.widget.EditText>(R.id.etUrl).text.toString()
+        assetItem.remarks = findViewById<android.widget.EditText>(R.id.et_remarks).text.toString()
+        assetItem.url = findViewById<android.widget.EditText>(R.id.et_url).text.toString()
 
         // check remarks unique
         val assetList = MmkvManager.decodeAssetUrls()
