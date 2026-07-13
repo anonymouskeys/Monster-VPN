@@ -57,7 +57,7 @@ class ServerGroupActivity : BaseActivity() {
         binding.spPolicyGroupType.setSelection(type)
 
         val pos = subIds.indexOf(config.policyGroupSubscriptionId ?: "").let { if (it >= 0) it else 0 }
-        binding.findViewById<android.widget.Spinner>(R.id.spPolicyGroupSubId).setSelection(pos)
+        binding.spPolicyGroupSubId.setSelection(pos)
 
         return true
     }
@@ -71,7 +71,7 @@ class ServerGroupActivity : BaseActivity() {
 
         if (subscriptionId.isNotNullEmpty()) {
             val pos = subIds.indexOf(subscriptionId).let { if (it >= 0) it else 0 }
-            binding.findViewById<android.widget.Spinner>(R.id.spPolicyGroupSubId).setSelection(pos)
+            binding.spPolicyGroupSubId.setSelection(pos)
         }
         return true
     }
@@ -91,14 +91,14 @@ class ServerGroupActivity : BaseActivity() {
 
         config.policyGroupType = binding.spPolicyGroupType.selectedItemPosition.toString()
 
-        val selPos = binding.findViewById<android.widget.Spinner>(R.id.spPolicyGroupSubId).selectedItemPosition
+        val selPos = binding.spPolicyGroupSubId.selectedItemPosition
         config.policyGroupSubscriptionId = if (selPos >= 0 && selPos < subIds.size) subIds[selPos] else null
 
         if (config.subscriptionId.isEmpty() && !subscriptionId.isNullOrEmpty()) {
             config.subscriptionId = subscriptionId.orEmpty()
         }
 
-        config.description = "${binding.spPolicyGroupType.selectedItem} - ${binding.findViewById<android.widget.Spinner>(R.id.spPolicyGroupSubId).selectedItem} - ${config.policyGroupFilter}"
+        config.description = "${binding.spPolicyGroupType.selectedItem} - ${binding.spPolicyGroupSubId.selectedItem} - ${config.policyGroupFilter}"
 
         MmkvManager.encodeServerConfig(editGuid, config)
         if (isRunning) {
@@ -142,7 +142,7 @@ class ServerGroupActivity : BaseActivity() {
         }
         val subAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, displayList)
         subAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        binding.findViewById<android.widget.Spinner>(R.id.spPolicyGroupSubId).adapter = subAdapter
+        binding.spPolicyGroupSubId.adapter = subAdapter
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
