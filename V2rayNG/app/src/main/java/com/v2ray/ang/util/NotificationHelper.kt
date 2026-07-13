@@ -3,6 +3,9 @@ package com.v2ray.ang.util
 import com.v2ray.ang.R
 import com.v2ray.ang.BuildConfig
 
+import com.v2ray.ang.R
+import com.v2ray.ang.BuildConfig
+
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager

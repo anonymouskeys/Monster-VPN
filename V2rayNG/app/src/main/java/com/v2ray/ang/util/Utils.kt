@@ -3,6 +3,9 @@ package com.v2ray.ang.util
 import com.v2ray.ang.R
 import com.v2ray.ang.BuildConfig
 
+import com.v2ray.ang.R
+import com.v2ray.ang.BuildConfig
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context

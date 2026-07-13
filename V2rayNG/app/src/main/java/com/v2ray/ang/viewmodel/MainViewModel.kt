@@ -3,6 +3,9 @@ package com.v2ray.ang.viewmodel
 import com.v2ray.ang.R
 import com.v2ray.ang.BuildConfig
 
+import com.v2ray.ang.R
+import com.v2ray.ang.BuildConfig
+
 import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
