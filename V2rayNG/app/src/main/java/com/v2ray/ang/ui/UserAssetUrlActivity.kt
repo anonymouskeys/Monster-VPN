@@ -42,8 +42,8 @@ class UserAssetUrlActivity : BaseActivity() {
         when {
             assetItem != null -> bindingAsset(assetItem)
             assetUrlQrcode != null -> {
-                binding.etRemarks.setText(assetNameQrcode)
-                binding.etUrl.setText(assetUrlQrcode)
+                binding.findViewById<android.widget.EditText>(R.id.etRemarks).setText(assetNameQrcode)
+                binding.findViewById<android.widget.EditText>(R.id.etUrl).setText(assetUrlQrcode)
             }
 
             else -> clearAsset()
@@ -54,8 +54,8 @@ class UserAssetUrlActivity : BaseActivity() {
      * bingding seleced asset config
      */
     private fun bindingAsset(assetItem: AssetUrlItem): Boolean {
-        binding.etRemarks.text = Utils.getEditable(assetItem.remarks)
-        binding.etUrl.text = Utils.getEditable(assetItem.url)
+        binding.findViewById<android.widget.EditText>(R.id.etRemarks).text = Utils.getEditable(assetItem.remarks)
+        binding.findViewById<android.widget.EditText>(R.id.etUrl).text = Utils.getEditable(assetItem.url)
         return true
     }
 
@@ -63,8 +63,8 @@ class UserAssetUrlActivity : BaseActivity() {
      * clear or init asset config
      */
     private fun clearAsset(): Boolean {
-        binding.etRemarks.text = null
-        binding.etUrl.text = null
+        binding.findViewById<android.widget.EditText>(R.id.etRemarks).text = null
+        binding.findViewById<android.widget.EditText>(R.id.etUrl).text = null
         return true
     }
 
@@ -89,8 +89,8 @@ class UserAssetUrlActivity : BaseActivity() {
             assetItem = AssetUrlItem()
         }
 
-        assetItem.remarks = binding.etRemarks.text.toString()
-        assetItem.url = binding.etUrl.text.toString()
+        assetItem.remarks = binding.findViewById<android.widget.EditText>(R.id.etRemarks).text.toString()
+        assetItem.url = binding.findViewById<android.widget.EditText>(R.id.etUrl).text.toString()
 
         // check remarks unique
         val assetList = MmkvManager.decodeAssetUrls()
