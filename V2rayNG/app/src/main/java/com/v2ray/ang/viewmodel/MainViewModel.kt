@@ -1,10 +1,8 @@
 package com.v2ray.ang.viewmodel
+import com.anonymouskeys.monstervpn.R
+import com.anonymouskeys.monstervpn.BuildConfig
 
-import com.v2ray.ang.R
-import com.v2ray.ang.BuildConfig
 
-import com.v2ray.ang.R
-import com.v2ray.ang.BuildConfig
 
 import android.app.Application
 import android.content.BroadcastReceiver

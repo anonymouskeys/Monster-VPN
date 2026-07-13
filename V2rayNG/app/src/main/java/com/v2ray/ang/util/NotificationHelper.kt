@@ -1,10 +1,8 @@
 package com.v2ray.ang.util
+import com.anonymouskeys.monstervpn.R
+import com.anonymouskeys.monstervpn.BuildConfig
 
-import com.v2ray.ang.R
-import com.v2ray.ang.BuildConfig
 
-import com.v2ray.ang.R
-import com.v2ray.ang.BuildConfig
 
 import android.app.Notification
 import android.app.NotificationChannel
