@@ -114,12 +114,4 @@
         android:id="@+id/sub_update"
         android:title="@string/title_sub_update"
         app:showAsAction="never" />
-    <item
-        android:id="@+id/import_from_file"
-        android:title="Импорт из файла"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/export_to_file"
-        android:title="Экспорт всех в файл"
-        app:showAsAction="never" />
 </menu>
