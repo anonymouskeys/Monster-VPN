@@ -7,7 +7,7 @@ import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.databinding.ActivityNoneBinding
+import com.anonymouskeys.monstervpn.databinding.ActivityNoneBinding
 import com.v2ray.ang.extension.toast
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.util.LogUtil
