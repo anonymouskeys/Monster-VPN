@@ -454,7 +454,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         try {
             contentResolver.openOutputStream(uri)?.bufferedWriter()?.use { writer ->
                 // Получаем все серверы из базы
-                val serverList = mainViewModel.serverList
+                val serverList = mainViewModel.serversCache
                 var count = 0
                 for (server in serverList) {
                     val conf = com.v2ray.ang.handler.AngConfigManager.shareConfig(server.guid)
@@ -480,7 +480,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         exportFileLauncher.launch("monster_vpn_configs.txt")
     }
 
-            : Boolean {
+    fun importClipboard(): Boolean {
         try {
             val clipboard = Utils.getClipboard(this)
             importBatchConfig(clipboard)
