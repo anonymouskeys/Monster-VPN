@@ -654,7 +654,7 @@ object CoreOutboundBuilder {
             }
 
             prependMask("tcp", fragmentMask)
-            prependMask("udp", noiseMask)
+            // prependMask("udp", noiseMask)
             streamSettings.finalmask = finalMaskObj
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to update outbound fragment", e)
