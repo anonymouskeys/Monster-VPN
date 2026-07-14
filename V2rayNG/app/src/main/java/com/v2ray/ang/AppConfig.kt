@@ -1,4 +1,5 @@
 package com.v2ray.ang
+import com.anonymouskeys.monstervpn.BuildConfig
 
 
 object AppConfig {
