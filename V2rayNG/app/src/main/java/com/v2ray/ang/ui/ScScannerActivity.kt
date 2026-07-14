@@ -1,8 +1,8 @@
 package com.v2ray.ang.ui
+import com.anonymouskeys.monstervpn.R
 
 import android.content.Intent
 import android.os.Bundle
-import com.v2ray.ang.R
 import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.extension.toastSuccess
 import com.v2ray.ang.handler.AngConfigManager
