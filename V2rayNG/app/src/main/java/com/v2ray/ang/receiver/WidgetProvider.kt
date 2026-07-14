@@ -8,7 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.R
+import com.anonymouskeys.monstervpn.R
 import com.v2ray.ang.core.CoreServiceManager
 
 class WidgetProvider : AppWidgetProvider() {

@@ -2,7 +2,7 @@ package com.v2ray.ang.handler
 
 import android.os.Build
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.BuildConfig
+import com.anonymouskeys.monstervpn.BuildConfig
 import com.v2ray.ang.dto.CheckUpdateResult
 import com.v2ray.ang.dto.GitHubRelease
 import com.v2ray.ang.dto.UrlContentRequest

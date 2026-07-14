@@ -6,7 +6,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.BuildConfig
+import com.anonymouskeys.monstervpn.BuildConfig
 import com.v2ray.ang.core.CoreNativeManager
 import com.v2ray.ang.dto.CheckUpdateResult
 import com.v2ray.ang.extension.toast

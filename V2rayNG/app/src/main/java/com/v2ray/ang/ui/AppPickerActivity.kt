@@ -9,8 +9,8 @@ import android.view.MenuItem
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.lifecycleScope
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.R
-import com.v2ray.ang.databinding.ActivityAppPickerBinding
+import com.anonymouskeys.monstervpn.R
+import com.anonymouskeys.monstervpn.databinding.ActivityAppPickerBinding
 import com.v2ray.ang.dto.AppInfo
 import com.v2ray.ang.util.AppManagerUtil
 import com.v2ray.ang.util.LogUtil

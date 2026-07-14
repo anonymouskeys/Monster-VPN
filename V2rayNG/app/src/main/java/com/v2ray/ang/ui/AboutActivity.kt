@@ -2,10 +2,10 @@ package com.v2ray.ang.ui
 
 import android.os.Bundle
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.BuildConfig
-import com.v2ray.ang.R
+import com.anonymouskeys.monstervpn.BuildConfig
+import com.anonymouskeys.monstervpn.R
 import com.v2ray.ang.core.CoreNativeManager
-import com.v2ray.ang.databinding.ActivityAboutBinding
+import com.anonymouskeys.monstervpn.databinding.ActivityAboutBinding
 import com.v2ray.ang.util.Utils
 
 class AboutActivity : BaseActivity() {
