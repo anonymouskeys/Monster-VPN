@@ -4,7 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.v2ray.ang.databinding.ItemRecyclerBypassListBinding
+import com.anonymouskeys.monstervpn.databinding.ItemRecyclerBypassListBinding
 import com.v2ray.ang.dto.AppInfo
 import com.v2ray.ang.viewmodel.PerAppProxyViewModel
 
