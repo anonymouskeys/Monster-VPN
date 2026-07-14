@@ -1,4 +1,7 @@
 package com.v2ray.ang.ui
+import com.anonymouskeys.monstervpn.R
+import com.anonymouskeys.monstervpn.databinding.FragmentGroupServerBinding
+import com.anonymouskeys.monstervpn.databinding.ItemQrcodeBinding
 
 import android.content.Intent
 import android.os.Bundle
@@ -13,10 +16,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.R
 import com.v2ray.ang.contracts.MainAdapterListener
-import com.v2ray.ang.databinding.FragmentGroupServerBinding
-import com.v2ray.ang.databinding.ItemQrcodeBinding
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.extension.isComplexType
