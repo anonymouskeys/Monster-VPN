@@ -429,7 +429,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     /**
      * import config from clipboard
      */
-    private fun importClipboard()
     private val importFileLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.GetContent()) { uri ->
         if (uri == null) return@registerForActivityResult
         try {
