@@ -141,13 +141,13 @@ open class FmtBase {
             NetworkType.WS, NetworkType.HTTP_UPGRADE -> {
                 config.host?.nullIfBlank()?.let { dicQuery["host"] = it }
                 config.path?.nullIfBlank()?.let { dicQuery["path"] = it }
-                config.finalMask?.nullIfBlank()?.let { dicQuery["finalMask"] = it }
+                config.finalMask?.nullIfBlank()?.let { dicQuery["fm"] = it }
             }
 
             NetworkType.XHTTP -> {
                 config.host?.nullIfBlank()?.let { dicQuery["host"] = it }
                 config.path?.nullIfBlank()?.let { dicQuery["path"] = it }
-                config.finalMask?.nullIfBlank()?.let { dicQuery["finalMask"] = it }
+                config.finalMask?.nullIfBlank()?.let { dicQuery["fm"] = it }
                 config.xhttpMode?.nullIfBlank()?.let { dicQuery["mode"] = it }
                 config.xhttpExtra?.nullIfBlank()?.let { dicQuery["extra"] = it }
             }
@@ -156,7 +156,7 @@ open class FmtBase {
                 dicQuery["type"] = "http"
                 config.host?.nullIfBlank()?.let { dicQuery["host"] = it }
                 config.path?.nullIfBlank()?.let { dicQuery["path"] = it }
-                config.finalMask?.nullIfBlank()?.let { dicQuery["finalMask"] = it }
+                config.finalMask?.nullIfBlank()?.let { dicQuery["fm"] = it }
             }
 
 //            NetworkType.QUIC -> {
