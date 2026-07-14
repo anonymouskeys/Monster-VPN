@@ -42,7 +42,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
-        android:name=".AngApplication"
+        android:name="com.v2ray.ang.AngApplication"
         android:allowBackup="true"
         android:banner="@mipmap/ic_banner"
         android:icon="@mipmap/ic_launcher"
@@ -53,7 +53,7 @@
         android:usesCleartextTraffic="true">
 
         <activity
-            android:name=".ui.MainActivity"
+            android:name="com.v2ray.ang.ui.MainActivity"
             android:exported="true"
             android:launchMode="singleTask">
             <intent-filter>
@@ -71,79 +71,79 @@
                 android:resource="@xml/shortcuts" />
         </activity>
         <activity
-            android:name=".ui.ServerActivity"
+            android:name="com.v2ray.ang.ui.ServerActivity"
             android:exported="false"
             android:windowSoftInputMode="stateUnchanged" />
         <activity
-            android:name=".ui.ServerCustomConfigActivity"
+            android:name="com.v2ray.ang.ui.ServerCustomConfigActivity"
             android:exported="false"
             android:windowSoftInputMode="stateUnchanged" />
         <activity
-            android:name=".ui.ServerGroupActivity"
+            android:name="com.v2ray.ang.ui.ServerGroupActivity"
             android:exported="false"
             android:windowSoftInputMode="stateUnchanged" />
         <activity
-            android:name=".ui.ServerProxyChainActivity"
+            android:name="com.v2ray.ang.ui.ServerProxyChainActivity"
             android:exported="false"
             android:windowSoftInputMode="stateUnchanged" />
         <activity
-            android:name=".ui.SettingsActivity"
+            android:name="com.v2ray.ang.ui.SettingsActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.PerAppProxyActivity"
+            android:name="com.v2ray.ang.ui.PerAppProxyActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.AppPickerActivity"
+            android:name="com.v2ray.ang.ui.AppPickerActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.ScannerActivity"
+            android:name="com.v2ray.ang.ui.ScannerActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.LogcatActivity"
+            android:name="com.v2ray.ang.ui.LogcatActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.RoutingSettingActivity"
+            android:name="com.v2ray.ang.ui.RoutingSettingActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.RoutingEditActivity"
+            android:name="com.v2ray.ang.ui.RoutingEditActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.SubSettingActivity"
+            android:name="com.v2ray.ang.ui.SubSettingActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.UserAssetActivity"
+            android:name="com.v2ray.ang.ui.UserAssetActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.UserAssetUrlActivity"
+            android:name="com.v2ray.ang.ui.UserAssetUrlActivity"
             android:exported="false" />
 
         <activity
-            android:name=".ui.SubEditActivity"
+            android:name="com.v2ray.ang.ui.SubEditActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.ScScannerActivity"
+            android:name="com.v2ray.ang.ui.ScScannerActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.ScSwitchActivity"
+            android:name="com.v2ray.ang.ui.ScSwitchActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:process=":RunSoLibV2RayDaemon"
             android:theme="@style/AppThemeDayNight.NoActionBar.Translucent" />
         <activity
-            android:name=".ui.ScStartActivity"
+            android:name="com.v2ray.ang.ui.ScStartActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:process=":RunSoLibV2RayDaemon"
             android:theme="@style/AppThemeDayNight.NoActionBar.Translucent" />
         <activity
-            android:name=".ui.ScStopActivity"
+            android:name="com.v2ray.ang.ui.ScStopActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:process=":RunSoLibV2RayDaemon"
             android:theme="@style/AppThemeDayNight.NoActionBar.Translucent" />
 
         <activity
-            android:name=".ui.UrlSchemeActivity"
+            android:name="com.v2ray.ang.ui.UrlSchemeActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -162,17 +162,17 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ui.CheckUpdateActivity"
+            android:name="com.v2ray.ang.ui.CheckUpdateActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.BackupActivity"
+            android:name="com.v2ray.ang.ui.BackupActivity"
             android:exported="false" />
         <activity
-            android:name=".ui.AboutActivity"
+            android:name="com.v2ray.ang.ui.AboutActivity"
             android:exported="false" />
 
         <service
-            android:name=".service.CoreVpnService"
+            android:name="com.v2ray.ang.service.CoreVpnService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse"
@@ -192,7 +192,7 @@
         </service>
 
         <service
-            android:name=".service.CoreProxyOnlyService"
+            android:name="com.v2ray.ang.service.CoreProxyOnlyService"
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:label="@string/app_name"
@@ -203,7 +203,7 @@
         </service>
 
         <service
-            android:name=".service.CoreRootService"
+            android:name="com.v2ray.ang.service.CoreRootService"
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:label="@string/app_name"
@@ -214,7 +214,7 @@
         </service>
 
         <service
-            android:name=".service.CoreTestService"
+            android:name="com.v2ray.ang.service.CoreTestService"
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:process=":RunSoLibV2RayDaemon">
@@ -224,7 +224,7 @@
         </service>
 
         <receiver
-            android:name=".receiver.WidgetProvider"
+            android:name="com.v2ray.ang.receiver.WidgetProvider"
             android:exported="true"
             android:process=":RunSoLibV2RayDaemon">
             <meta-data
@@ -237,7 +237,7 @@
             </intent-filter>
         </receiver>
         <receiver
-            android:name=".receiver.BootReceiver"
+            android:name="com.v2ray.ang.receiver.BootReceiver"
             android:exported="true"
             android:label="BootReceiver">
             <intent-filter>
@@ -246,7 +246,7 @@
         </receiver>
 
         <service
-            android:name=".service.QSTileService"
+            android:name="com.v2ray.ang.service.QSTileService"
             android:exported="true"
             android:foregroundServiceType="specialUse"
             android:icon="@drawable/ic_stat_name"
@@ -262,7 +262,7 @@
         </service>
         <!-- =====================Tasker===================== -->
         <activity
-            android:name=".ui.TaskerActivity"
+            android:name="com.v2ray.ang.ui.TaskerActivity"
             android:exported="true"
             android:icon="@mipmap/ic_launcher">
             <intent-filter>
@@ -271,7 +271,7 @@
         </activity>
 
         <receiver
-            android:name=".receiver.TaskerReceiver"
+            android:name="com.v2ray.ang.receiver.TaskerReceiver"
             android:exported="true"
             android:process=":RunSoLibV2RayDaemon"
             tools:ignore="ExportedReceiver">
