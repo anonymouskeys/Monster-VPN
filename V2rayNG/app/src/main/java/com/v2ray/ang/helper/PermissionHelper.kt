@@ -5,7 +5,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.v2ray.ang.R
+import com.anonymouskeys.monstervpn.R
 import com.v2ray.ang.enums.PermissionType
 import com.v2ray.ang.extension.toast
 
