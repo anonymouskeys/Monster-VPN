@@ -1,7 +1,7 @@
 package com.v2ray.ang.ui
+import com.anonymouskeys.monstervpn.R
 
 import android.os.Bundle
-import com.v2ray.ang.R
 import com.v2ray.ang.core.CoreServiceManager
 
 class ScStopActivity : BaseActivity() {
