@@ -1,4 +1,6 @@
 package com.v2ray.ang.ui
+import com.anonymouskeys.monstervpn.R
+import com.anonymouskeys.monstervpn.databinding.ActivityMainBinding
 
 import android.content.Intent
 import android.content.res.ColorStateList
@@ -22,9 +24,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.tabs.TabLayoutMediator
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.R
 import com.v2ray.ang.core.CoreServiceManager
-import com.v2ray.ang.databinding.ActivityMainBinding
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.enums.PermissionType
 import com.v2ray.ang.extension.toast
