@@ -1,4 +1,5 @@
 package com.v2ray.ang.ui
+import com.anonymouskeys.monstervpn.R
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -11,7 +12,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.R
 import com.v2ray.ang.contracts.BaseAdapterListener
 import com.v2ray.ang.databinding.ActivityRoutingSettingBinding
 import com.v2ray.ang.extension.toastError
