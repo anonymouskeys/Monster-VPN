@@ -74,3 +74,13 @@ base64_key.txt
 keystore.properties
 key.properties
 local.properties
+
+# Signing secrets
+*.keystore
+*.jks
+*.p12
+*.pfx
+base64_key.txt
+keystore.properties
+key.properties
+local.properties
