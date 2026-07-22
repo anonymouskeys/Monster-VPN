@@ -137,7 +137,7 @@ jobs:
             --no-daemon \
             --stacktrace \
             clean \
-            licenseFdroidReleaseReport \
+            
             assembleFdroidRelease \
             -Pandroid.injected.signing.store.file="$KEYSTORE_FILE" \
             -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
