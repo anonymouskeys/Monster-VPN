@@ -195,7 +195,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             return
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN && MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING)) {
+        if (Build.VERSION.SDK_INT >= ANDROID_17_API_LEVEL && MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING)) {
             checkAndRequestPermission(PermissionType.ACCESS_LOCAL_NETWORK) {}
         }
 
@@ -749,5 +749,10 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     override fun onDestroy() {
         tabMediator?.detach()
         super.onDestroy()
+    }
+
+    private companion object {
+        // Android 17 is API 37. Literal avoids requiring compileSdk 37.
+        const val ANDROID_17_API_LEVEL = 37
     }
 }
