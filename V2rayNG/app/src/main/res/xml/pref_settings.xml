@@ -279,6 +279,65 @@
     </PreferenceCategory>
 
 
+    <PreferenceCategory
+        android:key="pref_dpi_category"
+        android:title="@string/title_dpi_settings"
+        app:initialExpandedChildrenCount="1">
+
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="pref_dpi_enabled"
+            android:summary="@string/summary_pref_dpi_enabled"
+            android:title="@string/title_pref_dpi_enabled" />
+
+        <ListPreference
+            android:defaultValue="auto"
+            android:entries="@array/dpi_strategy_entries"
+            android:entryValues="@array/dpi_strategy_values"
+            android:key="pref_dpi_strategy"
+            android:summary="%s"
+            android:title="@string/title_pref_dpi_strategy" />
+
+        <EditTextPreference
+            android:defaultValue="1+s"
+            android:key="pref_dpi_split_position"
+            android:summary="1+s"
+            android:title="@string/title_pref_dpi_split_position" />
+
+        <EditTextPreference
+            android:defaultValue="8"
+            android:inputType="number"
+            android:key="pref_dpi_fake_ttl"
+            android:summary="8"
+            android:title="@string/title_pref_dpi_fake_ttl" />
+
+        <EditTextPreference
+            android:defaultValue="1"
+            android:inputType="number"
+            android:key="pref_dpi_fake_count"
+            android:summary="1"
+            android:title="@string/title_pref_dpi_fake_count" />
+
+        <EditTextPreference
+            android:defaultValue="0"
+            android:inputType="number"
+            android:key="pref_dpi_delay_ms"
+            android:summary="0"
+            android:title="@string/title_pref_dpi_delay_ms" />
+
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="pref_dpi_ports_80_443_only"
+            android:summary="@string/summary_pref_dpi_ports_80_443_only"
+            android:title="@string/title_pref_dpi_ports_80_443_only" />
+
+        <EditTextPreference
+            android:key="pref_dpi_expert_args"
+            android:summary="@string/summary_pref_dpi_expert_args"
+            android:title="@string/title_pref_dpi_expert_args" />
+
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/title_advanced">
 
         <CheckBoxPreference

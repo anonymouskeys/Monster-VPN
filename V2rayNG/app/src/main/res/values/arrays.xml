@@ -223,4 +223,18 @@
     </string-array>
 
 
+
+    <string-array name="dpi_strategy_entries">
+        <item>@string/dpi_strategy_auto</item>
+        <item>@string/dpi_strategy_split</item>
+        <item>@string/dpi_strategy_fake</item>
+        <item>@string/dpi_strategy_disorder</item>
+    </string-array>
+
+    <string-array name="dpi_strategy_values" translatable="false">
+        <item>auto</item>
+        <item>split</item>
+        <item>fake</item>
+        <item>disorder</item>
+    </string-array>
 </resources>

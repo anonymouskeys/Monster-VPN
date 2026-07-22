@@ -1,5 +1,7 @@
 package com.v2ray.ang.util
 
+import android.net.Uri
+
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
@@ -86,7 +88,14 @@ object JsonUtil {
         if (src == null)
             return null
         try {
-            return JsonParser.parseString(src).getAsJsonObject()
+            val normalized = src.trim().let { value ->
+                if (value.startsWith("%7B", ignoreCase = true) || value.startsWith("%5B", ignoreCase = true)) {
+                    Uri.decode(value)
+                } else {
+                    value
+                }
+            }
+            return JsonParser.parseString(normalized).getAsJsonObject()
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to parse JSON string", e)
             return null
