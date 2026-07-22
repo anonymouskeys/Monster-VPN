@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/dpi_toggle"
+        android:title="@string/main_dpi_switch"
+        app:actionLayout="@layout/action_dpi_switch"
+        app:showAsAction="always" />
+    <item
         android:id="@+id/search_view"
         android:icon="@drawable/ic_outline_filter_alt_24"
         android:title="@string/menu_item_search"

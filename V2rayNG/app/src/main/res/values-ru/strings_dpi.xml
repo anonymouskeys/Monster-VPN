@@ -18,4 +18,7 @@
     <string name="summary_pref_dpi_ports_80_443_only">Не обрабатывать подключения к другим портам</string>
     <string name="title_pref_dpi_expert_args">Дополнительные аргументы ciadpi</string>
     <string name="summary_pref_dpi_expert_args">Для опытных пользователей; оставьте пустым для готовых настроек</string>
+    <string name="toast_dpi_enabled">ByeDPI включён</string>
+    <string name="toast_dpi_disabled">ByeDPI выключен</string>
+    <string name="main_dpi_long_press_hint">Удерживайте, чтобы открыть настройки ByeDPI</string>
 </resources>

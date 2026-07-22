@@ -22,6 +22,7 @@ import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.navigation.NavigationView
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.tabs.TabLayoutMediator
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.core.CoreServiceManager
@@ -50,6 +51,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     val mainViewModel: MainViewModel by viewModels()
     private lateinit var groupPagerAdapter: GroupPagerAdapter
     private var tabMediator: TabLayoutMediator? = null
+    private var dpiSwitch: SwitchMaterial? = null
 
     private val requestVpnPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
@@ -239,6 +241,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
     override fun onResume() {
         super.onResume()
+        dpiSwitch?.isChecked = MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false)
     }
 
     override fun onPause() {
@@ -247,6 +250,24 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
+
+        val dpiItem = menu.findItem(R.id.dpi_toggle)
+        dpiSwitch = dpiItem?.actionView?.findViewById(R.id.switch_dpi)
+        dpiSwitch?.apply {
+            isChecked = MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false)
+            setOnCheckedChangeListener { _, enabled ->
+                MmkvManager.encodeSettings(AppConfig.PREF_DPI_ENABLED, enabled)
+                SettingsChangeManager.makeRestartService()
+                toast(if (enabled) R.string.toast_dpi_enabled else R.string.toast_dpi_disabled)
+                if (mainViewModel.isRunning.value == true) {
+                    restartV2Ray()
+                }
+            }
+            setOnLongClickListener {
+                requestActivityLauncher.launch(Intent(this@MainActivity, SettingsActivity::class.java))
+                true
+            }
+        }
 
         val searchItem = menu.findItem(R.id.search_view)
         if (searchItem != null) {
@@ -735,7 +756,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             R.id.routing_setting -> requestActivityLauncher.launch(Intent(this, RoutingSettingActivity::class.java))
             R.id.user_asset_setting -> requestActivityLauncher.launch(Intent(this, UserAssetActivity::class.java))
             R.id.settings -> requestActivityLauncher.launch(Intent(this, SettingsActivity::class.java))
-            R.id.promotion -> Utils.openUri(this, "${Utils.decode(AppConfig.APP_PROMOTION_URL)}?t=${System.currentTimeMillis()}")
+            R.id.promotion -> Utils.openUri(this, AppConfig.TG_CHANNEL_URL)
             R.id.logcat -> startActivity(Intent(this, LogcatActivity::class.java))
             R.id.check_for_update -> startActivity(Intent(this, CheckUpdateActivity::class.java))
             R.id.backup_restore -> requestActivityLauncher.launch(Intent(this, BackupActivity::class.java))

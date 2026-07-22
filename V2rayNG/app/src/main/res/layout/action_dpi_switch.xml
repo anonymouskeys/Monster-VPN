@@ -5,7 +5,7 @@
     android:layout_width="wrap_content"
     android:layout_height="match_parent"
     android:gravity="center"
-    android:minWidth="64dp"
+    android:minWidth="56dp"
     android:paddingStart="4dp"
     android:paddingEnd="4dp"
     android:text="@string/main_dpi_switch"
