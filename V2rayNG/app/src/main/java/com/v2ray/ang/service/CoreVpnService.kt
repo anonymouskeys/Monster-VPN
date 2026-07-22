@@ -21,6 +21,7 @@ import com.anonymouskeys.monstervpn.BuildConfig
 import com.v2ray.ang.contracts.ServiceControl
 import com.v2ray.ang.contracts.Tun2SocksControl
 import com.v2ray.ang.core.CoreServiceManager
+import com.v2ray.ang.dpi.ByeDpiManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.NotificationManager
 import com.v2ray.ang.handler.SettingsManager
@@ -109,6 +110,7 @@ class CoreVpnService : VpnService(), ServiceControl {
             }
         }
 
+        ByeDpiManager.release(ByeDpiManager.Owner.VPN_SERVICE)
         NotificationManager.cancelNotification()
     }
 
@@ -128,6 +130,12 @@ class CoreVpnService : VpnService(), ServiceControl {
     override fun startService() {
         if (!::mInterface.isInitialized) {
             LogUtil.e(AppConfig.TAG, "StartCore-VPN: Interface not initialized")
+            return
+        }
+        val dpiEnabled = MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false)
+        if (dpiEnabled && !ByeDpiManager.acquire(applicationContext, ByeDpiManager.Owner.VPN_SERVICE)) {
+            LogUtil.e(AppConfig.TAG, "StartCore-VPN: ByeDPI failed to start")
+            stopAllService()
             return
         }
         if (!CoreServiceManager.startCoreLoop(mInterface)) {
@@ -369,6 +377,7 @@ class CoreVpnService : VpnService(), ServiceControl {
         RootLanSharing.stopClientSharing(this)
 
         CoreServiceManager.stopCoreLoop()
+        ByeDpiManager.release(ByeDpiManager.Owner.VPN_SERVICE)
 
         if (isForced) {
             //stopSelf has to be called ahead of mInterface.close(). otherwise v2ray core cannot be stooped

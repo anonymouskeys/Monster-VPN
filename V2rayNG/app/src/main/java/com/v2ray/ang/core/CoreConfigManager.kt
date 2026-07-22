@@ -163,6 +163,8 @@ object CoreConfigManager {
             )
         }
 
+        configureByeDpiOutbound(v2rayConfig)
+
         // User routing rules (policyGroupBalancerTags rewrites TAG_PROXY→balancer when main is POLICYGROUP).
         configureRouting(configContext, v2rayConfig, policyGroupBalancerTags)
         configureFakeDns(v2rayConfig)
@@ -386,6 +388,31 @@ object CoreConfigManager {
         }
         balancerStrategies.add(strategy)
         policyGroupBalancerTags[resolvedOutbound.tag] = balancerTag
+    }
+
+    /** Route TCP-capable proxy outbounds through the local ciadpi SOCKS listener. */
+    private fun configureByeDpiOutbound(v2rayConfig: V2rayConfig) {
+        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false) != true) return
+        val supportedProtocols = setOf("vmess", "vless", "trojan", "shadowsocks", "socks", "http")
+        val unsupportedNetworks = setOf("kcp", "quic", "hysteria")
+        val candidates = v2rayConfig.outbounds.filter { outbound ->
+            outbound.tag != AppConfig.TAG_DIRECT && outbound.tag != AppConfig.TAG_BLOCKED &&
+                outbound.protocol in supportedProtocols && outbound.streamSettings?.network !in unsupportedNetworks
+        }
+        if (candidates.isEmpty()) {
+            LogUtil.w(AppConfig.TAG, "ByeDPI enabled, but current profile has no compatible TCP outbound")
+            return
+        }
+        val tag = "byedpi-local"
+        if (v2rayConfig.outbounds.none { it.tag == tag }) {
+            v2rayConfig.outbounds.add(V2rayConfig.OutboundBean(
+                tag = tag, protocol = "socks",
+                settings = V2rayConfig.OutboundBean.OutSettingsBean(address = AppConfig.LOOPBACK, port = AppConfig.PORT_BYEDPI),
+                streamSettings = null, mux = null
+            ))
+        }
+        candidates.forEach { it.proxySettings = V2rayConfig.OutboundBean.ProxySettingsBean(tag, true) }
+        LogUtil.i(AppConfig.TAG, "ByeDPI chained to ${candidates.size} TCP outbound(s)")
     }
 
     /**

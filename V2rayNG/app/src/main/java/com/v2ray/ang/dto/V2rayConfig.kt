@@ -69,8 +69,13 @@ data class V2rayConfig(
         var settings: OutSettingsBean? = null,
         var streamSettings: StreamSettingsBean? = null,
         val sendThrough: String? = null,
-        var mux: MuxBean? = MuxBean(false)
+        var mux: MuxBean? = MuxBean(false),
+        var proxySettings: ProxySettingsBean? = null
     ) {
+        data class ProxySettingsBean(
+            var tag: String,
+            var transportLayer: Boolean = true
+        )
         data class OutSettingsBean(
             /*Common */
             var address: Any? = null,

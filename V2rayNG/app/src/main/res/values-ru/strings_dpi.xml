@@ -21,4 +21,12 @@
     <string name="toast_dpi_enabled">ByeDPI включён</string>
     <string name="toast_dpi_disabled">ByeDPI выключен</string>
     <string name="main_dpi_long_press_hint">Удерживайте, чтобы открыть настройки ByeDPI</string>
+    <string name="dpi_level_title">Уровень защиты DPI</string>
+    <string name="dpi_level_off">Выключено</string>
+    <string name="dpi_level_auto">Авто</string>
+    <string name="dpi_level_light">Лёгкий</string>
+    <string name="dpi_level_strong">Сильный</string>
+    <string name="dpi_level_maximum">Максимальный</string>
+    <string name="dpi_expert">Эксперт</string>
+    <string name="toast_dpi_level_applied">Уровень DPI применён</string>
 </resources>

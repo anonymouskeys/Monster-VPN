@@ -248,6 +248,31 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         super.onPause()
     }
 
+    private fun showDpiLevelDialog() {
+        val values = resources.getStringArray(R.array.dpi_level_values)
+        val labels = resources.getStringArray(R.array.dpi_level_entries)
+        val enabled = MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false)
+        val currentStrategy = MmkvManager.decodeSettingsString(AppConfig.PREF_DPI_STRATEGY, "auto_balanced")
+        val current = if (!enabled) 0 else values.indexOf(currentStrategy).takeIf { it > 0 } ?: 1
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dpi_level_title)
+            .setSingleChoiceItems(labels, current) { dialog, which ->
+                val newEnabled = which != 0
+                MmkvManager.encodeSettings(AppConfig.PREF_DPI_ENABLED, newEnabled)
+                if (newEnabled) MmkvManager.encodeSettings(AppConfig.PREF_DPI_STRATEGY, values[which])
+                dpiSwitch?.isChecked = newEnabled
+                SettingsChangeManager.makeRestartService()
+                toast(if (newEnabled) R.string.toast_dpi_level_applied else R.string.toast_dpi_disabled)
+                dialog.dismiss()
+                if (mainViewModel.isRunning.value == true) restartV2Ray()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .setNeutralButton(R.string.dpi_expert) { _, _ ->
+                requestActivityLauncher.launch(Intent(this, SettingsActivity::class.java))
+            }
+            .show()
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
 
@@ -255,14 +280,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         dpiSwitch = dpiItem?.actionView?.findViewById(R.id.switch_dpi)
         dpiSwitch?.apply {
             isChecked = MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false)
-            setOnCheckedChangeListener { _, enabled ->
-                MmkvManager.encodeSettings(AppConfig.PREF_DPI_ENABLED, enabled)
-                SettingsChangeManager.makeRestartService()
-                toast(if (enabled) R.string.toast_dpi_enabled else R.string.toast_dpi_disabled)
-                if (mainViewModel.isRunning.value == true) {
-                    restartV2Ray()
-                }
-            }
+            setOnClickListener { showDpiLevelDialog() }
             setOnLongClickListener {
                 requestActivityLauncher.launch(Intent(this@MainActivity, SettingsActivity::class.java))
                 true

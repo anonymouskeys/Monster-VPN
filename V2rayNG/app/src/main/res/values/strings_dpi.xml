@@ -21,4 +21,12 @@
     <string name="toast_dpi_enabled">ByeDPI enabled</string>
     <string name="toast_dpi_disabled">ByeDPI disabled</string>
     <string name="main_dpi_long_press_hint">Long press to open ByeDPI settings</string>
+    <string name="dpi_level_title">DPI protection level</string>
+    <string name="dpi_level_off">Off</string>
+    <string name="dpi_level_auto">Auto</string>
+    <string name="dpi_level_light">Light</string>
+    <string name="dpi_level_strong">Strong</string>
+    <string name="dpi_level_maximum">Maximum</string>
+    <string name="dpi_expert">Expert</string>
+    <string name="toast_dpi_level_applied">DPI level applied</string>
 </resources>
