@@ -64,3 +64,13 @@ V2rayNG/app/google-services.json
 # Ignore OS-specific files
 Thumbs.db
 .DS_Store
+
+# Signing secrets
+*.keystore
+*.jks
+*.p12
+*.pfx
+base64_key.txt
+keystore.properties
+key.properties
+local.properties
