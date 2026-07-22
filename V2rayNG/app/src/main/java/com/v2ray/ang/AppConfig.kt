@@ -83,6 +83,16 @@ object AppConfig {
     const val PREF_AUTO_SORT_AFTER_TEST = "pref_auto_sort_after_test"
     const val PREF_REAL_PING_CONCURRENCY = "pref_real_ping_concurrency"
 
+    /** ByeDPI runtime settings migrated from Project-X. */
+    const val PREF_DPI_ENABLED = "pref_dpi_enabled"
+    const val PREF_DPI_STRATEGY = "pref_dpi_strategy"
+    const val PREF_DPI_SPLIT_POSITION = "pref_dpi_split_position"
+    const val PREF_DPI_FAKE_TTL = "pref_dpi_fake_ttl"
+    const val PREF_DPI_FAKE_COUNT = "pref_dpi_fake_count"
+    const val PREF_DPI_DELAY_MS = "pref_dpi_delay_ms"
+    const val PREF_DPI_PORTS_80_443_ONLY = "pref_dpi_ports_80_443_only"
+    const val PREF_DPI_EXPERT_ARGS = "pref_dpi_expert_args"
+
     /** Cache keys. */
     const val CACHE_SUBSCRIPTION_ID = "cache_subscription_id"
 
@@ -151,6 +161,7 @@ object AppConfig {
     /** Ports and addresses for various services. */
     const val PORT_LOCAL_DNS = "10853"
     const val PORT_SOCKS = "10808"
+    const val PORT_BYEDPI = 10809
     const val WIREGUARD_LOCAL_ADDRESS_V4 = "172.16.0.2/32"
     const val WIREGUARD_LOCAL_ADDRESS_V6 = "2606:4700:110:8f81:d551:a0:532e:a2b3/128"
     const val WIREGUARD_LOCAL_MTU = "1420"
