@@ -9,6 +9,7 @@ data class TestServiceMessage(
     val testMode: String = TEST_MODE_HANDSHAKE
 ) : Serializable {
     companion object {
+        const val TEST_MODE_SMART = "SMART"
         const val TEST_MODE_TCP = "TCP"
         const val TEST_MODE_HANDSHAKE = "HANDSHAKE"
     }

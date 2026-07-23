@@ -121,8 +121,8 @@ class RealPingWorkerService(
         val failed = PingResult(guid, -1L, transientFailure = false)
         val config = MmkvManager.decodeServerConfig(guid) ?: return failed
 
-        // The TCP menu is the cheap first stage. Handshake keeps one definitive attempt only;
-        // retries made large groups take minutes and could preserve stale green results.
+        // This is one definitive protocol attempt. Optional TCP pre-filtering belongs only to
+        // Smart Test; standalone Handshake intentionally checks every selected profile.
         val configResult = CoreConfigManager.getV2rayConfig4Speedtest(context, guid)
         if (!configResult.status) return failed
 
@@ -140,6 +140,17 @@ class RealPingWorkerService(
 
     companion object {
         private const val TCP_TIMEOUT_MS = 1200
+
+        /** Profiles without a plain TCP endpoint must bypass Smart Test's TCP stage. */
+        fun supportsTcpPrecheck(guid: String): Boolean {
+            val config = MmkvManager.decodeServerConfig(guid) ?: return false
+            return !config.configType.isComplexType()
+                && config.configType != EConfigType.HYSTERIA2
+                && config.configType != EConfigType.WIREGUARD
+                && config.alpn?.startsWith("h3") != true
+                && config.server.isNotNullEmpty()
+                && config.serverPort?.toIntOrNull() != null
+        }
     }
 
     private fun publishFinal(result: PingResult) {

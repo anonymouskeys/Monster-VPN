@@ -104,6 +104,10 @@
         android:title="@string/title_export_all"
         app:showAsAction="never" />
     <item
+        android:id="@+id/smart_test_all"
+        android:title="@string/title_smart_test_all_server"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/tcp_ping_all"
         android:title="@string/title_tcp_test_all_server"
         app:showAsAction="never" />

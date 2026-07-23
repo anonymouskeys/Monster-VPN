@@ -321,6 +321,7 @@
     <string name="toast_invalid_update_interval">Invalid update interval. Minimum is 15 minutes.</string>
     <string name="title_sub_update">Update subscription</string>
     <string name="title_real_ping_all_server">Real delay config</string>
+    <string name="title_smart_test_all_server">Smart test: TCP → handshake</string>
     <string name="title_tcp_test_all_server">Quick TCP profile test</string>
     <string name="title_handshake_test_all_server">Protocol handshake profile test</string>
     <string name="title_user_asset_setting">Asset files</string>
