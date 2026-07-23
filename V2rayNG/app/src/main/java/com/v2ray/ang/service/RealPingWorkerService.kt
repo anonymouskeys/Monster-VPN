@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
@@ -30,7 +31,13 @@ class RealPingWorkerService(
     private val onEvent: (RealPingEvent) -> Unit = {}
 ) {
     private val job = SupervisorJob()
-    private val concurrency = SettingsManager.getRealPingConcurrency()
+    // Every measureOutboundDelay call creates a temporary Xray core. A large parallel burst
+    // overloads the shared ciadpi listener and produces false TLS timeouts/closed pipes.
+    private val concurrency = if (com.v2ray.ang.dpi.ByeDpiManager.isRunning()) {
+        SettingsManager.getRealPingConcurrency().coerceAtMost(8)
+    } else {
+        SettingsManager.getRealPingConcurrency()
+    }
     private val dispatcher = Executors.newFixedThreadPool(concurrency).asCoroutineDispatcher()
     private val scope = CoroutineScope(job + dispatcher + CoroutineName("RealPingBatchWorker"))
 
@@ -79,11 +86,15 @@ class RealPingWorkerService(
         }
     }
 
-    private fun startRealPing(guid: String): Long {
+    private suspend fun startRealPing(guid: String): Long {
         val retFailure = -1L
+        val dpiRunning = com.v2ray.ang.dpi.ByeDpiManager.isRunning()
 
         val config = MmkvManager.decodeServerConfig(guid) ?: return retFailure
-        if (!config.configType.isComplexType()
+        // A direct TCP pre-check bypasses ciadpi. Under DPI filtering it can reject a profile
+        // that succeeds when launched through the real ByeDPI chain. Keep it only for normal mode.
+        if (!dpiRunning
+            && !config.configType.isComplexType()
             && config.configType != EConfigType.HYSTERIA2
             && config.configType != EConfigType.WIREGUARD
             && config.alpn?.startsWith("h3") != true
@@ -92,16 +103,24 @@ class RealPingWorkerService(
         ) {
             val url = config.server.orEmpty()
             val port = config.serverPort.orEmpty().toInt()
-            val tcpTime = SpeedtestManager.socketConnectTime(url, port, 1000)
-            if (tcpTime <= -1L) {
-                return retFailure
-            }
+            val tcpTime = SpeedtestManager.socketConnectTime(url, port, 3000)
+            if (tcpTime <= -1L) return retFailure
         }
 
         val configResult = CoreConfigManager.getV2rayConfig4Speedtest(context, guid)
-        if (!configResult.status) {
-            return retFailure
+        if (!configResult.status) return retFailure
+
+        val urls = if (dpiRunning) {
+            listOf(SettingsManager.getDelayTestUrl(), SettingsManager.getDelayTestUrl(true))
+        } else {
+            listOf(SettingsManager.getDelayTestUrl())
+        }.distinct()
+
+        urls.forEachIndexed { index, url ->
+            val result = CoreNativeManager.measureOutboundDelay(configResult.content, url)
+            if (result >= 0L) return result
+            if (dpiRunning && index + 1 < urls.size) delay(450L)
         }
-        return CoreNativeManager.measureOutboundDelay(configResult.content, SettingsManager.getDelayTestUrl())
+        return retFailure
     }
 }

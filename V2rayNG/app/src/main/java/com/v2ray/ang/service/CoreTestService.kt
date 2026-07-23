@@ -6,6 +6,7 @@ import android.os.IBinder
 import com.v2ray.ang.AppConfig
 import com.anonymouskeys.monstervpn.R
 import com.v2ray.ang.core.CoreNativeManager
+import com.v2ray.ang.dpi.ByeDpiManager
 import com.v2ray.ang.dto.RealPingEvent
 import com.v2ray.ang.dto.TestServiceMessage
 import com.v2ray.ang.enums.NotificationChannelType
@@ -20,6 +21,9 @@ class CoreTestService : Service() {
 
     // manage active batch workers so each batch is independent and cancellable
     private val activeWorkers = Collections.synchronizedList(mutableListOf<RealPingWorkerService>())
+
+    @Volatile
+    private var dpiTestOwned = false
 
     /**
      * Initializes the V2Ray environment.
@@ -47,6 +51,7 @@ class CoreTestService : Service() {
         val snapshot = ArrayList(activeWorkers)
         snapshot.forEach { it.cancel() }
         activeWorkers.clear()
+        releaseDpiTestOwner()
         NotificationHelper.stopForeground(this)
         super.onDestroy()
     }
@@ -92,6 +97,8 @@ class CoreTestService : Service() {
         }
 
         if (guidsList.isNotEmpty()) {
+            acquireDpiTestOwnerIfNeeded()
+
             lateinit var worker: RealPingWorkerService
             worker = RealPingWorkerService(
                 context = this,
@@ -126,6 +133,7 @@ class CoreTestService : Service() {
                 MessageUtil.sendMsg2UI(this, AppConfig.MSG_MEASURE_CONFIG_FINISH, event.status)
                 onWorkerDone()
                 if (activeWorkers.isEmpty()) {
+                    releaseDpiTestOwner()
                     NotificationHelper.stopForeground(this)
                     stopSelf()
                 }
@@ -138,7 +146,29 @@ class CoreTestService : Service() {
         val snapshot = ArrayList(activeWorkers)
         snapshot.forEach { it.cancel() }
         activeWorkers.clear()
+        releaseDpiTestOwner()
         NotificationHelper.stopForeground(this)
         stopSelf()
     }
+    /**
+     * Keep one ciadpi process alive for the complete batch. Speed-test configs are generated
+     * after this acquisition, so CoreConfigManager can safely insert the local SOCKS chain.
+     */
+    @Synchronized
+    private fun acquireDpiTestOwnerIfNeeded() {
+        if (!MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false) || dpiTestOwned) return
+
+        dpiTestOwned = ByeDpiManager.acquire(applicationContext, ByeDpiManager.Owner.TEST_SERVICE)
+        if (!dpiTestOwned) {
+            LogUtil.w(AppConfig.TAG, "CoreTestService: ByeDPI is unavailable; tests will use the normal path")
+        }
+    }
+
+    @Synchronized
+    private fun releaseDpiTestOwner() {
+        if (!dpiTestOwned) return
+        ByeDpiManager.release(ByeDpiManager.Owner.TEST_SERVICE)
+        dpiTestOwned = false
+    }
+
 }
