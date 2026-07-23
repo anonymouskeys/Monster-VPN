@@ -78,7 +78,8 @@ object CoreNativeManager {
         return try {
             Libv2ray.measureOutboundDelay(config, testUrl)
         } catch (e: Exception) {
-            LogUtil.e(AppConfig.TAG, "Failed to measure outbound delay", e)
+            val reason = e.message?.lineSequence()?.firstOrNull().orEmpty().ifBlank { e.javaClass.simpleName }
+            LogUtil.w(AppConfig.TAG, "Outbound delay test failed: $reason")
             -1L
         }
     }

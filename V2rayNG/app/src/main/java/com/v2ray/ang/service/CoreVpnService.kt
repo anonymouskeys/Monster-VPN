@@ -35,6 +35,9 @@ import java.lang.ref.SoftReference
 class CoreVpnService : VpnService(), ServiceControl {
     private lateinit var mInterface: ParcelFileDescriptor
     private var isRunning = false
+    private var isStarting = false
+    private var isStopping = false
+    private var byeDpiAcquired = false
     private var tun2SocksService: Tun2SocksControl? = null
 
     /**destroy
@@ -93,7 +96,6 @@ class CoreVpnService : VpnService(), ServiceControl {
 //    }
 
     override fun onDestroy() {
-        super.onDestroy()
         LogUtil.i(AppConfig.TAG, "StartCore-VPN: Service destroyed")
 
         // Ensure VPN interface is properly closed when the service is destroyed without
@@ -110,15 +112,25 @@ class CoreVpnService : VpnService(), ServiceControl {
             }
         }
 
-        ByeDpiManager.release(ByeDpiManager.Owner.VPN_SERVICE)
+        releaseByeDpiIfNeeded()
         NotificationManager.cancelNotification()
+        CoreServiceManager.detachService(this)
+        super.onDestroy()
     }
 
+    @Synchronized
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (isRunning || isStarting) {
+            LogUtil.w(AppConfig.TAG, "StartCore-VPN: Duplicate start ignored")
+            return START_STICKY
+        }
+        isStarting = true
+        isStopping = false
         LogUtil.i(AppConfig.TAG, "StartCore-VPN: Service command received")
         NotificationManager.showNotification(null)
-        setupVpnService()
-        startService()
+        val configured = setupVpnService()
+        if (configured) startService()
+        isStarting = false
         return START_STICKY
         //return super.onStartCommand(intent, flags, startId)
     }
@@ -137,6 +149,8 @@ class CoreVpnService : VpnService(), ServiceControl {
             LogUtil.e(AppConfig.TAG, "StartCore-VPN: ByeDPI failed to start")
             stopAllService()
             return
+        } else if (dpiEnabled) {
+            byeDpiAcquired = true
         }
         if (!CoreServiceManager.startCoreLoop(mInterface)) {
             LogUtil.e(AppConfig.TAG, "StartCore-VPN: Failed to start core loop")
@@ -167,21 +181,22 @@ class CoreVpnService : VpnService(), ServiceControl {
      * Sets up the VPN service.
      * Prepares the VPN and configures it if preparation is successful.
      */
-    private fun setupVpnService() {
+    private fun setupVpnService(): Boolean {
         val prepare = prepare(this)
         if (prepare != null) {
             LogUtil.e(AppConfig.TAG, "StartCore-VPN: Permission not granted")
             stopSelf()
-            return
+            return false
         }
 
         if (configureVpnService() != true) {
             LogUtil.e(AppConfig.TAG, "StartCore-VPN: Configuration failed")
             stopSelf()
-            return
+            return false
         }
 
         runTun2socks()
+        return true
     }
 
     /**
@@ -357,7 +372,10 @@ class CoreVpnService : VpnService(), ServiceControl {
         tun2SocksService?.startTun2Socks()
     }
 
+    @Synchronized
     private fun stopAllService(isForced: Boolean = true) {
+        if (isStopping) return
+        isStopping = true
 //        val configName = defaultDPreference.getPrefString(PREF_CURR_CONFIG_GUID, "")
 //        val emptyInfo = VpnNetworkInfo()
 //        val info = loadVpnNetworkInfo(configName, emptyInfo)!! + (lastNetworkInfo ?: emptyInfo)
@@ -377,7 +395,7 @@ class CoreVpnService : VpnService(), ServiceControl {
         RootLanSharing.stopClientSharing(this)
 
         CoreServiceManager.stopCoreLoop()
-        ByeDpiManager.release(ByeDpiManager.Owner.VPN_SERVICE)
+        releaseByeDpiIfNeeded()
 
         if (isForced) {
             //stopSelf has to be called ahead of mInterface.close(). otherwise v2ray core cannot be stooped
@@ -405,6 +423,13 @@ class CoreVpnService : VpnService(), ServiceControl {
                 LogUtil.e(AppConfig.TAG, "StartCore-VPN: Failed to close interface", e)
             }
         }
+        isStarting = false
+    }
+
+    private fun releaseByeDpiIfNeeded() {
+        if (!byeDpiAcquired) return
+        byeDpiAcquired = false
+        ByeDpiManager.release(ByeDpiManager.Owner.VPN_SERVICE)
     }
 }
 

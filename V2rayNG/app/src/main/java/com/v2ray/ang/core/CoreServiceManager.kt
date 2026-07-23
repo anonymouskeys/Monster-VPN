@@ -33,6 +33,7 @@ import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.MessageUtil
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import libv2ray.CoreCallbackHandler
@@ -40,6 +41,7 @@ import libv2ray.CoreController
 import libv2ray.ProcessFinder
 import java.lang.ref.SoftReference
 import java.net.InetSocketAddress
+import java.util.concurrent.atomic.AtomicLong
 
 object CoreServiceManager {
 
@@ -48,6 +50,9 @@ object CoreServiceManager {
     private var currentConfig: ProfileItem? = null
     private var processFinder: XrayProcessFinder? = null
     private var browserDialer: IDialerService? = null
+    private var receiverRegistered = false
+    private var delayJob: Job? = null
+    private val lifecycleGeneration = AtomicLong(0)
 
     var serviceControl: SoftReference<ServiceControl>? = null
         set(value) {
@@ -59,6 +64,14 @@ object CoreServiceManager {
                 coreController.registerProcessFinder(processFinder)
             }
         }
+
+
+    @Synchronized
+    fun detachService(owner: ServiceControl) {
+        if (serviceControl?.get() === owner) {
+            serviceControl = null
+        }
+    }
 
     /**
      * Starts the V2Ray service from a toggle action.
@@ -211,6 +224,7 @@ object CoreServiceManager {
      * `registerReceiver(Context, BroadcastReceiver, IntentFilter, int)`.
      * Starts the V2Ray core service.
      */
+    @Synchronized
     fun startCoreLoop(vpnInterface: ParcelFileDescriptor?): Boolean {
         if (coreController.isRunning) {
             LogUtil.w(AppConfig.TAG, "StartCore-Manager: Core already running")
@@ -251,7 +265,10 @@ object CoreServiceManager {
         mFilter.addAction(Intent.ACTION_SCREEN_ON)
         mFilter.addAction(Intent.ACTION_SCREEN_OFF)
         mFilter.addAction(Intent.ACTION_USER_PRESENT)
-        ContextCompat.registerReceiver(service, mMsgReceive, mFilter, Utils.receiverFlags())
+        if (!receiverRegistered) {
+            ContextCompat.registerReceiver(service, mMsgReceive, mFilter, Utils.receiverFlags())
+            receiverRegistered = true
+        }
 
         currentConfig = config
         var tunFd = vpnInterface?.fd ?: 0
@@ -294,8 +311,12 @@ object CoreServiceManager {
      * Unregisters broadcast receivers, stops notifications, and shuts down plugins.
      * @return True if the core was stopped successfully, false otherwise.
      */
+    @Synchronized
     fun stopCoreLoop(): Boolean {
         val service = getService() ?: return false
+        lifecycleGeneration.incrementAndGet()
+        delayJob?.cancel()
+        delayJob = null
 
         if (coreController.isRunning) {
             CoroutineScope(Dispatchers.IO).launch {
@@ -317,10 +338,14 @@ object CoreServiceManager {
         MessageUtil.sendMsg2UI(service, AppConfig.MSG_STATE_STOP_SUCCESS, "")
         NotificationManager.cancelNotification()
 
-        try {
-            service.unregisterReceiver(mMsgReceive)
-        } catch (e: Exception) {
-            LogUtil.e(AppConfig.TAG, "StartCore-Manager: Failed to unregister receiver", e)
+        if (receiverRegistered) {
+            try {
+                service.unregisterReceiver(mMsgReceive)
+            } catch (e: IllegalArgumentException) {
+                LogUtil.w(AppConfig.TAG, "StartCore-Manager: Receiver was already unregistered")
+            } finally {
+                receiverRegistered = false
+            }
         }
 
         return true
@@ -360,30 +385,37 @@ object CoreServiceManager {
      * Tests with primary URL first, then falls back to alternative URL if needed.
      * Also fetches remote IP information if the delay test was successful.
      */
+    @Synchronized
     private fun measureV2rayDelay() {
-        if (coreController.isRunning == false) {
-            return
-        }
+        if (!coreController.isRunning || delayJob?.isActive == true) return
 
-        CoroutineScope(Dispatchers.IO).launch {
+        val generation = lifecycleGeneration.get()
+        delayJob = CoroutineScope(Dispatchers.IO).launch {
             val service = getService() ?: return@launch
             var time = -1L
             var errorStr = ""
 
+            fun stillActive(): Boolean =
+                lifecycleGeneration.get() == generation && coreController.isRunning
+
             try {
+                if (!stillActive()) return@launch
                 time = coreController.measureDelay(SettingsManager.getDelayTestUrl())
             } catch (e: Exception) {
-                LogUtil.e(AppConfig.TAG, "StartCore-Manager: Failed to measure delay", e)
-                errorStr = e.message?.substringAfter("\":") ?: "empty message"
+                if (!stillActive()) return@launch
+                errorStr = e.message?.substringAfter("\":") ?: e.javaClass.simpleName
+                LogUtil.w(AppConfig.TAG, "StartCore-Manager: Delay test failed: $errorStr")
             }
-            if (time == -1L) {
+            if (time == -1L && stillActive()) {
                 try {
                     time = coreController.measureDelay(SettingsManager.getDelayTestUrl(true))
                 } catch (e: Exception) {
-                    LogUtil.e(AppConfig.TAG, "StartCore-Manager: Failed to measure delay", e)
-                    errorStr = e.message?.substringAfter("\":") ?: "empty message"
+                    if (!stillActive()) return@launch
+                    errorStr = e.message?.substringAfter("\":") ?: e.javaClass.simpleName
+                    LogUtil.w(AppConfig.TAG, "StartCore-Manager: Fallback delay test failed: $errorStr")
                 }
             }
+            if (!stillActive()) return@launch
 
             val result = if (time >= 0) {
                 service.getString(R.string.connection_test_available, time)
@@ -392,10 +424,11 @@ object CoreServiceManager {
             }
             MessageUtil.sendMsg2UI(service, AppConfig.MSG_MEASURE_DELAY_SUCCESS, result)
 
-            // Only fetch IP info if the delay test was successful
-            if (time >= 0) {
+            if (time >= 0 && stillActive()) {
                 SpeedtestManager.getRemoteIPInfo()?.let { ip ->
-                    MessageUtil.sendMsg2UI(service, AppConfig.MSG_MEASURE_DELAY_SUCCESS, "$result\n$ip")
+                    if (stillActive()) {
+                        MessageUtil.sendMsg2UI(service, AppConfig.MSG_MEASURE_DELAY_SUCCESS, "$result\n$ip")
+                    }
                 }
             }
         }
