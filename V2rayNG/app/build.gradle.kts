@@ -11,8 +11,8 @@ android {
         applicationId = "com.anonymouskeys.monstervpn"
         minSdk = 24
         targetSdk = 36
-        versionCode = 737
-        versionName = "2.2.7"
+        versionCode = 738
+        versionName = "2.2.8"
         multiDexEnabled = true
 
         // One universal APK containing every bundled ABI.
