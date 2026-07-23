@@ -41,7 +41,7 @@ BRANCH="$(git symbolic-ref --quiet --short HEAD)" || fail "Detached HEAD is not 
 UPSTREAM="$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
 [ -n "$UPSTREAM" ] || fail "Branch '$BRANCH' has no upstream. Push it once with: git push -u $REMOTE $BRANCH"
 
-git fetch --quiet "$REMOTE" --tags
+git fetch "$REMOTE" --tags || true
 [ "$(git rev-parse HEAD)" = "$(git rev-parse '@{upstream}')" ] \
   || fail "Local branch is not synchronized with $UPSTREAM. Pull or push first."
 if git show-ref --verify --quiet "refs/tags/$TAG" || git ls-remote --exit-code --tags "$REMOTE" "refs/tags/$TAG" >/dev/null 2>&1; then
