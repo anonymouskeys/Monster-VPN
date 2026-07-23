@@ -64,6 +64,16 @@ jobs:
             sed -i '/android {/a\    ndkVersion = "29.0.14206865"' "$FILE"
           fi
 
+      - name: Build ByeDPI native binaries
+        shell: bash
+        run: |
+          chmod +x compile-byedpi.sh
+          ./compile-byedpi.sh
+
+          for abi in arm64-v8a armeabi-v7a x86 x86_64; do
+            test -x "V2rayNG/app/libs/$abi/libciadpi.so"
+          done
+
       - name: Cache native library
         id: cache-hevtun
         uses: actions/cache@v4
@@ -164,6 +174,11 @@ jobs:
           fi
 
           cp "$APK" release/Monster-VPN-universal.apk
+
+          unzip -l release/Monster-VPN-universal.apk | grep -q 'lib/arm64-v8a/libciadpi.so'
+          unzip -l release/Monster-VPN-universal.apk | grep -q 'lib/armeabi-v7a/libciadpi.so'
+          unzip -l release/Monster-VPN-universal.apk | grep -q 'lib/x86/libciadpi.so'
+          unzip -l release/Monster-VPN-universal.apk | grep -q 'lib/x86_64/libciadpi.so'
 
           echo "path=release/Monster-VPN-universal.apk" >> "$GITHUB_OUTPUT"
           sha256sum release/Monster-VPN-universal.apk \
