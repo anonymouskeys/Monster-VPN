@@ -74,13 +74,36 @@ object CoreNativeManager {
      * @param testUrl The URL to test against
      * @return Delay in milliseconds, or -1 if test failed
      */
+    data class DelayMeasurement(
+        val delayMillis: Long,
+        val reason: String = "",
+        val isTransient: Boolean = false
+    )
+
     fun measureOutboundDelay(config: String, testUrl: String): Long {
+        return measureOutboundDelayDetailed(config, testUrl).delayMillis
+    }
+
+    /**
+     * Same native measurement with failure classification for the batch scheduler.
+     * Permanent TLS/configuration failures are not retried; short-lived transport shutdowns and
+     * timeouts are retried with reduced concurrency.
+     */
+    fun measureOutboundDelayDetailed(config: String, testUrl: String): DelayMeasurement {
         return try {
-            Libv2ray.measureOutboundDelay(config, testUrl)
+            DelayMeasurement(Libv2ray.measureOutboundDelay(config, testUrl))
         } catch (e: Exception) {
             val reason = e.message?.lineSequence()?.firstOrNull().orEmpty().ifBlank { e.javaClass.simpleName }
+            val normalized = reason.lowercase()
+            val transient = normalized.contains("closed pipe")
+                || normalized.contains("eof")
+                || normalized.contains("timeout")
+                || normalized.contains("deadline exceeded")
+                || normalized.contains("context canceled")
+                || normalized.contains("connection reset")
+                || normalized.contains("temporarily unavailable")
             LogUtil.w(AppConfig.TAG, "Outbound delay test failed: $reason")
-            -1L
+            DelayMeasurement(-1L, reason, transient)
         }
     }
 
