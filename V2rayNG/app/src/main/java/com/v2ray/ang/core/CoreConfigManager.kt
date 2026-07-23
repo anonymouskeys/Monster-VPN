@@ -7,6 +7,7 @@ import com.v2ray.ang.AppConfig
 import com.v2ray.ang.dto.ConfigResult
 import com.v2ray.ang.dto.CoreConfigContext
 import com.v2ray.ang.dto.V2rayConfig
+import com.v2ray.ang.dpi.ByeDpiManager
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.RulesetItem
 import com.v2ray.ang.enums.BalancerStrategyType
@@ -392,7 +393,9 @@ object CoreConfigManager {
 
     /** Route TCP-capable proxy outbounds through the local ciadpi SOCKS listener. */
     private fun configureByeDpiOutbound(v2rayConfig: V2rayConfig) {
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false) != true) return
+        // Build the local SOCKS chain only after ciadpi has actually opened its port.
+        // Checking the preference alone leaves Xray pointing at a dead 127.0.0.1 listener.
+        if (!ByeDpiManager.isRunning()) return
         val supportedProtocols = setOf("vmess", "vless", "trojan", "shadowsocks", "socks", "http")
         val unsupportedNetworks = setOf("kcp", "quic", "hysteria")
         val candidates = v2rayConfig.outbounds.filter { outbound ->

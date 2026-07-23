@@ -145,12 +145,16 @@ class CoreVpnService : VpnService(), ServiceControl {
             return
         }
         val dpiEnabled = MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false)
-        if (dpiEnabled && !ByeDpiManager.acquire(applicationContext, ByeDpiManager.Owner.VPN_SERVICE)) {
-            LogUtil.e(AppConfig.TAG, "StartCore-VPN: ByeDPI failed to start")
-            stopAllService()
-            return
-        } else if (dpiEnabled) {
-            byeDpiAcquired = true
+        if (dpiEnabled) {
+            byeDpiAcquired = ByeDpiManager.acquire(
+                applicationContext,
+                ByeDpiManager.Owner.VPN_SERVICE
+            )
+            if (!byeDpiAcquired) {
+                // Match the working Project-X behavior: DPI is an optional transport layer.
+                // A missing/crashed ciadpi process must not prevent the normal Xray VPN path.
+                LogUtil.w(AppConfig.TAG, "StartCore-VPN: ByeDPI unavailable; using normal Xray path")
+            }
         }
         if (!CoreServiceManager.startCoreLoop(mInterface)) {
             LogUtil.e(AppConfig.TAG, "StartCore-VPN: Failed to start core loop")
