@@ -38,7 +38,7 @@ jobs:
             V2rayNG/gradle/wrapper/gradle-wrapper.properties
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Install Android SDK and NDK
         shell: bash
