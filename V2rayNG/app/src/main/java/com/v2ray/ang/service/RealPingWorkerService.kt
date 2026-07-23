@@ -5,6 +5,7 @@ import com.v2ray.ang.core.CoreConfigManager
 import com.v2ray.ang.core.CoreNativeManager
 import com.v2ray.ang.dpi.ByeDpiManager
 import com.v2ray.ang.dto.RealPingEvent
+import com.v2ray.ang.dto.TestServiceMessage
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.extension.isComplexType
 import com.v2ray.ang.extension.isNotNullEmpty
@@ -20,7 +21,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
-import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.coroutineContext
 
@@ -39,6 +39,7 @@ import kotlin.coroutines.coroutineContext
 class RealPingWorkerService(
     private val context: Context,
     private val guids: List<String>,
+    private val testMode: String,
     private val onEvent: (RealPingEvent) -> Unit = {}
 ) {
     private val job = SupervisorJob()
@@ -69,77 +70,76 @@ class RealPingWorkerService(
     private suspend fun runBatch() = coroutineScope {
         if (guids.isEmpty()) return@coroutineScope
 
-        val dpiRunning = ByeDpiManager.isRunning()
+        val dpiRunning = testMode == TestServiceMessage.TEST_MODE_HANDSHAKE && ByeDpiManager.isRunning()
         val configuredConcurrency = SettingsManager.getRealPingConcurrency()
-        val firstPassConcurrency = if (dpiRunning) {
-            configuredConcurrency.coerceIn(4, 8)
-        } else {
-            configuredConcurrency.coerceIn(1, 64)
+        val concurrency = when (testMode) {
+            TestServiceMessage.TEST_MODE_TCP -> configuredConcurrency.coerceIn(24, 64)
+            else -> if (dpiRunning) configuredConcurrency.coerceIn(8, 12) else configuredConcurrency.coerceIn(8, 32)
         }.coerceAtMost(guids.size)
 
-        if (dpiRunning) delay(300L)
+        if (dpiRunning) delay(180L)
 
-        val transientQueue = ConcurrentLinkedQueue<String>()
         val nextIndex = AtomicInteger(0)
-
-        repeat(firstPassConcurrency) { workerIndex ->
+        repeat(concurrency) { workerIndex ->
             launch {
                 if (dpiRunning && workerIndex > 0) {
-                    delay((workerIndex * 45L).coerceAtMost(280L))
+                    delay((workerIndex * 25L).coerceAtMost(220L))
                 }
                 while (true) {
                     coroutineContext.ensureActive()
                     val index = nextIndex.getAndIncrement()
                     if (index >= guids.size) break
 
-                    val result = testProfile(
-                        guid = guids[index],
-                        dpiRunning = dpiRunning,
-                        testUrl = SettingsManager.getDelayTestUrl()
-                    )
-                    if (result.transientFailure && dpiRunning) {
-                        transientQueue.add(result.guid)
+                    val guid = guids[index]
+                    val result = if (testMode == TestServiceMessage.TEST_MODE_TCP) {
+                        testTcpProfile(guid)
                     } else {
-                        publishFinal(result)
+                        testHandshakeProfile(guid, dpiRunning)
                     }
-                }
-            }
-        }
-
-        // Wait until every first-pass worker above has completed before entering the retry stage.
-        // coroutineScope waits for child jobs only when this block is about to return, therefore
-        // use small child scopes for explicit stage barriers.
-        while (nextIndex.get() < guids.size || completedCount.get() + transientQueue.size < guids.size) {
-            coroutineContext.ensureActive()
-            delay(50L)
-        }
-
-        if (transientQueue.isEmpty()) return@coroutineScope
-
-        // Give ciadpi and the native Xray instances time to close sockets from the fast pass.
-        delay(600L)
-
-        val retryGuids = transientQueue.toList()
-        val retryIndex = AtomicInteger(0)
-        val retryConcurrency = minOf(2, retryGuids.size)
-        repeat(retryConcurrency) { workerIndex ->
-            launch {
-                if (workerIndex > 0) delay(160L)
-                while (true) {
-                    coroutineContext.ensureActive()
-                    val index = retryIndex.getAndIncrement()
-                    if (index >= retryGuids.size) break
-
-                    val result = testProfile(
-                        guid = retryGuids[index],
-                        dpiRunning = true,
-                        testUrl = SettingsManager.getDelayTestUrl(true)
-                    )
                     publishFinal(result)
-                    if (result.transientFailure) delay(120L)
                 }
             }
         }
+    }
+
+    private fun testTcpProfile(guid: String): PingResult {
+        val failed = PingResult(guid, -1L, transientFailure = false)
+        val config = MmkvManager.decodeServerConfig(guid) ?: return failed
+        if (config.configType.isComplexType()
+            || config.configType == EConfigType.HYSTERIA2
+            || config.configType == EConfigType.WIREGUARD
+            || config.alpn?.startsWith("h3") == true
+            || !config.server.isNotNullEmpty()
+        ) return failed
+
+        val port = config.serverPort?.toIntOrNull() ?: return failed
+        val delay = SpeedtestManager.socketConnectTime(config.server.orEmpty(), port, TCP_TIMEOUT_MS)
+        return PingResult(guid, delay, transientFailure = false)
+    }
+
+    private suspend fun testHandshakeProfile(guid: String, dpiRunning: Boolean): PingResult {
+        val failed = PingResult(guid, -1L, transientFailure = false)
+        val config = MmkvManager.decodeServerConfig(guid) ?: return failed
+
+        // The TCP menu is the cheap first stage. Handshake keeps one definitive attempt only;
+        // retries made large groups take minutes and could preserve stale green results.
+        val configResult = CoreConfigManager.getV2rayConfig4Speedtest(context, guid)
+        if (!configResult.status) return failed
+
+        coroutineContext.ensureActive()
+        val measurement = CoreNativeManager.measureOutboundDelayDetailed(
+            configResult.content,
+            SettingsManager.getDelayTestUrl()
+        )
+        return PingResult(
+            guid = guid,
+            delayMillis = measurement.delayMillis,
+            transientFailure = false
+        )
+    }
+
+    companion object {
+        private const val TCP_TIMEOUT_MS = 1200
     }
 
     private fun publishFinal(result: PingResult) {
@@ -154,41 +154,5 @@ class RealPingWorkerService(
         onEvent(RealPingEvent.Progress("$done / ${guids.size}"))
     }
 
-    private suspend fun testProfile(
-        guid: String,
-        dpiRunning: Boolean,
-        testUrl: String
-    ): PingResult {
-        val permanentFailure = PingResult(guid, -1L, transientFailure = false)
-        val config = MmkvManager.decodeServerConfig(guid) ?: return permanentFailure
 
-        // A direct TCP pre-check bypasses ByeDPI. Keep it only for normal mode, otherwise it can
-        // reject a profile that succeeds through the actual DPI chain.
-        if (!dpiRunning
-            && !config.configType.isComplexType()
-            && config.configType != EConfigType.HYSTERIA2
-            && config.configType != EConfigType.WIREGUARD
-            && config.alpn?.startsWith("h3") != true
-            && config.server.isNotNullEmpty()
-            && config.serverPort?.toIntOrNull() != null
-        ) {
-            val tcpTime = SpeedtestManager.socketConnectTime(
-                config.server.orEmpty(),
-                config.serverPort.orEmpty().toInt(),
-                3000
-            )
-            if (tcpTime <= -1L) return permanentFailure
-        }
-
-        val configResult = CoreConfigManager.getV2rayConfig4Speedtest(context, guid)
-        if (!configResult.status) return permanentFailure
-
-        coroutineContext.ensureActive()
-        val measurement = CoreNativeManager.measureOutboundDelayDetailed(configResult.content, testUrl)
-        return PingResult(
-            guid = guid,
-            delayMillis = measurement.delayMillis,
-            transientFailure = measurement.delayMillis < 0L && measurement.isTransient
-        )
-    }
 }

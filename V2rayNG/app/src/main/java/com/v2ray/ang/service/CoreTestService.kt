@@ -122,7 +122,7 @@ class CoreTestService : Service() {
             this,
             NotificationChannelType.CORE_TEST,
             getString(R.string.app_name),
-            getString(R.string.title_real_ping_all_server)
+            getString(if (message.testMode == TestServiceMessage.TEST_MODE_TCP) R.string.title_tcp_test_all_server else R.string.title_handshake_test_all_server)
         )
 
         val guidsList = when {
@@ -142,7 +142,7 @@ class CoreTestService : Service() {
             val total = guidsList.distinct().size
             handleWorkerEvent(RealPingEvent.Progress("0 / $total")) {}
 
-            acquireDpiTestOwnerIfNeeded()
+            if (message.testMode == TestServiceMessage.TEST_MODE_HANDSHAKE) acquireDpiTestOwnerIfNeeded()
 
             // A cancel or a newer start may arrive while the native process is starting. Do not
             // publish an obsolete worker after the blocking readiness probe completes.
@@ -155,6 +155,7 @@ class CoreTestService : Service() {
             worker = RealPingWorkerService(
                 context = this,
                 guids = guidsList.distinct(),
+                testMode = message.testMode,
                 onEvent = { event -> handleWorkerEvent(event) { activeWorkers.remove(worker) } }
             )
             activeWorkers.add(worker)
@@ -177,20 +178,7 @@ class CoreTestService : Service() {
             }
 
             is RealPingEvent.Result -> {
-                val previous = MmkvManager.decodeServerAffiliationInfo(event.guid)?.testDelayMillis ?: 0L
-                val shouldPersist = event.delayMillis >= 0L
-                    || !event.transientFailure
-                    || previous <= 0L
-
-                if (shouldPersist) {
-                    MmkvManager.encodeServerTestDelayMillis(event.guid, event.delayMillis)
-                } else {
-                    LogUtil.i(
-                        AppConfig.TAG,
-                        "CoreTestService: keeping last good delay for ${event.guid}; " +
-                            "the new batch result was a transient transport failure"
-                    )
-                }
+                MmkvManager.encodeServerTestDelayMillis(event.guid, event.delayMillis)
                 MessageUtil.sendMsg2UI(this, AppConfig.MSG_MEASURE_CONFIG_SUCCESS, event.guid)
             }
 

@@ -177,15 +177,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Tests the real ping for all servers.
      */
-    fun testAllRealPing() {
-        // Always send the exact visible snapshot. Resolving an empty list again inside the service
-        // races subscription imports and made a 146-profile request appear as a stale 1 / 1 job.
-        val guids = serversCache.map { it.guid }.distinct()
-        if (guids.isEmpty()) return
+    fun testAllTcpPing() {
+        startBatchTest(TestServiceMessage.TEST_MODE_TCP, serversCache.map { it.guid }.distinct())
+    }
 
-        // Keep the last known result visible until a new conclusive result arrives. Clearing the
-        // whole list here turned temporary DPI overload into permanent -1 values, even when the
-        // same profile had just passed an individual test.
+    fun testAllHandshake() {
+        // The intended workflow is TCP first, then protocol handshake only for reachable endpoints.
+        // A user may still run this directly; in that case all visible profiles are checked.
+        val visible = serversCache.map { it.guid }.distinct()
+        val tcpPassed = visible.filter {
+            (MmkvManager.decodeServerAffiliationInfo(it)?.testDelayMillis ?: -1L) >= 0L
+        }
+        startBatchTest(
+            TestServiceMessage.TEST_MODE_HANDSHAKE,
+            if (tcpPassed.isNotEmpty()) tcpPassed else visible
+        )
+    }
+
+    private fun startBatchTest(testMode: String, guids: List<String>) {
+        if (guids.isEmpty()) return
         updateListAction.value = -1
         updateTestResultAction.value =
             getApplication<AngApplication>().getString(R.string.connection_runing_task_left, "0 / ${guids.size}")
@@ -195,7 +205,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             TestServiceMessage(
                 key = AppConfig.MSG_MEASURE_CONFIG_START,
                 subscriptionId = subscriptionId,
-                serverGuids = guids
+                serverGuids = guids,
+                testMode = testMode
             )
         )
     }
