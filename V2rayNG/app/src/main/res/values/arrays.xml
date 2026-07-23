@@ -223,4 +223,24 @@
     </string-array>
 
 
+
+    <string-array name="dpi_strategy_entries">
+        <item>@string/dpi_strategy_auto</item>
+        <item>@string/dpi_strategy_split</item>
+        <item>@string/dpi_strategy_fake</item>
+        <item>@string/dpi_strategy_disorder</item>
+    </string-array>
+
+    <string-array name="dpi_strategy_values" translatable="false">
+        <item>auto</item>
+        <item>split</item>
+        <item>fake</item>
+        <item>disorder</item>
+    </string-array>
+    <string-array name="dpi_level_entries">
+        <item>@string/dpi_level_off</item><item>@string/dpi_level_auto</item><item>@string/dpi_level_light</item><item>@string/dpi_level_strong</item><item>@string/dpi_level_maximum</item>
+    </string-array>
+    <string-array name="dpi_level_values" translatable="false">
+        <item>off</item><item>auto_balanced</item><item>split_sni</item><item>fake_split</item><item>auto_aggressive</item>
+    </string-array>
 </resources>

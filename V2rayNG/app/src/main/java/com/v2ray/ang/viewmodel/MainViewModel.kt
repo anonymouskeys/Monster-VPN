@@ -177,27 +177,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Tests the real ping for all servers.
      */
-    fun testAllRealPing() {
+    fun testAllTcpPing() {
+        startBatchTest(TestServiceMessage.TEST_MODE_TCP, serversCache.map { it.guid }.distinct())
+    }
+
+    fun testAllHandshake() {
+        // The intended workflow is TCP first, then protocol handshake only for reachable endpoints.
+        // A user may still run this directly; in that case all visible profiles are checked.
+        val visible = serversCache.map { it.guid }.distinct()
+        val tcpPassed = visible.filter {
+            (MmkvManager.decodeServerAffiliationInfo(it)?.testDelayMillis ?: -1L) >= 0L
+        }
+        startBatchTest(
+            TestServiceMessage.TEST_MODE_HANDSHAKE,
+            if (tcpPassed.isNotEmpty()) tcpPassed else visible
+        )
+    }
+
+    private fun startBatchTest(testMode: String, guids: List<String>) {
+        if (guids.isEmpty()) return
+        updateListAction.value = -1
+        updateTestResultAction.value =
+            getApplication<AngApplication>().getString(R.string.connection_runing_task_left, "0 / ${guids.size}")
+
         MessageUtil.sendMsg2TestService(
             getApplication(),
-            TestServiceMessage(key = AppConfig.MSG_MEASURE_CONFIG_CANCEL)
-        )
-        MmkvManager.clearAllTestDelayResults(serversCache.map { it.guid }.toList())
-        updateListAction.value = -1
-
-        viewModelScope.launch(Dispatchers.Default) {
-            if (serversCache.isEmpty()) {
-                return@launch
-            }
-            MessageUtil.sendMsg2TestService(
-                getApplication(),
-                TestServiceMessage(
-                    key = AppConfig.MSG_MEASURE_CONFIG_START,
-                    subscriptionId = subscriptionId,
-                    serverGuids = if (keywordFilter.isNotEmpty()) serversCache.map { it.guid } else emptyList()
-                )
+            TestServiceMessage(
+                key = AppConfig.MSG_MEASURE_CONFIG_START,
+                subscriptionId = subscriptionId,
+                serverGuids = guids,
+                testMode = testMode
             )
-        }
+        )
     }
 
     /**

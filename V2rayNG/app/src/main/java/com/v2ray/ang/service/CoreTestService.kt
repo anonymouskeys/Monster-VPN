@@ -6,6 +6,7 @@ import android.os.IBinder
 import com.v2ray.ang.AppConfig
 import com.anonymouskeys.monstervpn.R
 import com.v2ray.ang.core.CoreNativeManager
+import com.v2ray.ang.dpi.ByeDpiManager
 import com.v2ray.ang.dto.RealPingEvent
 import com.v2ray.ang.dto.TestServiceMessage
 import com.v2ray.ang.enums.NotificationChannelType
@@ -15,11 +16,33 @@ import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.MessageUtil
 import com.v2ray.ang.util.NotificationHelper
 import java.util.Collections
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class CoreTestService : Service() {
 
+    // Service callbacks run on Android's main thread. ByeDpiManager.acquire() starts a native
+    // process and probes its local SOCKS port with a blocking Socket.connect(), so all test
+    // commands must be dispatched to IO before touching the DPI runtime.
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(
+        serviceJob + Dispatchers.IO + CoroutineName("CoreTestService")
+    )
+    private val commandGeneration = AtomicInteger(0)
+    private val commandMutex = Mutex()
+
     // manage active batch workers so each batch is independent and cancellable
     private val activeWorkers = Collections.synchronizedList(mutableListOf<RealPingWorkerService>())
+
+    @Volatile
+    private var dpiTestOwned = false
 
     /**
      * Initializes the V2Ray environment.
@@ -43,10 +66,13 @@ class CoreTestService : Service() {
      */
     override fun onDestroy() {
         LogUtil.i(AppConfig.TAG, "CoreTestService is being destroyed, cancelling ${activeWorkers.size} active workers")
+        commandGeneration.incrementAndGet()
+        serviceScope.cancel()
         // cancel any active workers
         val snapshot = ArrayList(activeWorkers)
         snapshot.forEach { it.cancel() }
         activeWorkers.clear()
+        releaseDpiTestOwner()
         NotificationHelper.stopForeground(this)
         super.onDestroy()
     }
@@ -65,24 +91,38 @@ class CoreTestService : Service() {
             return START_NOT_STICKY
         }
 
+        val generation = commandGeneration.incrementAndGet()
         when (message.key) {
-            AppConfig.MSG_MEASURE_CONFIG_START -> handleMeasureStart(message, startId)
-            AppConfig.MSG_MEASURE_CONFIG_CANCEL -> handleMeasureCancel()
+            AppConfig.MSG_MEASURE_CONFIG_START -> serviceScope.launch {
+                commandMutex.withLock {
+                    handleMeasureStart(message, startId, generation)
+                }
+            }
+            AppConfig.MSG_MEASURE_CONFIG_CANCEL -> serviceScope.launch {
+                commandMutex.withLock {
+                    handleMeasureCancel()
+                }
+            }
             else -> {
-                NotificationHelper.stopForeground(this); stopSelf(startId)
+                NotificationHelper.stopForeground(this)
+                stopSelf(startId)
             }
         }
         return START_NOT_STICKY
     }
 
-    private fun handleMeasureStart(message: TestServiceMessage, startId: Int) {
+    private fun handleMeasureStart(
+        message: TestServiceMessage,
+        startId: Int,
+        generation: Int
+    ) {
         LogUtil.i(AppConfig.TAG, "CoreTestService starting worker   subscription ${message.subscriptionId}")
 
         NotificationHelper.startForeground(
             this,
             NotificationChannelType.CORE_TEST,
             getString(R.string.app_name),
-            getString(R.string.title_real_ping_all_server)
+            getString(if (message.testMode == TestServiceMessage.TEST_MODE_TCP) R.string.title_tcp_test_all_server else R.string.title_handshake_test_all_server)
         )
 
         val guidsList = when {
@@ -92,10 +132,30 @@ class CoreTestService : Service() {
         }
 
         if (guidsList.isNotEmpty()) {
+            // A second tap while a batch is alive must not cancel and restart hundreds of tests.
+            // Keep the current session and report its state instead.
+            if (activeWorkers.isNotEmpty()) {
+                LogUtil.i(AppConfig.TAG, "CoreTestService: batch already running; duplicate start ignored")
+                return
+            }
+
+            val total = guidsList.distinct().size
+            handleWorkerEvent(RealPingEvent.Progress("0 / $total")) {}
+
+            if (message.testMode == TestServiceMessage.TEST_MODE_HANDSHAKE) acquireDpiTestOwnerIfNeeded()
+
+            // A cancel or a newer start may arrive while the native process is starting. Do not
+            // publish an obsolete worker after the blocking readiness probe completes.
+            if (generation != commandGeneration.get() || serviceJob.isCancelled) {
+                if (activeWorkers.isEmpty()) releaseDpiTestOwner()
+                return
+            }
+
             lateinit var worker: RealPingWorkerService
             worker = RealPingWorkerService(
                 context = this,
-                guids = guidsList,
+                guids = guidsList.distinct(),
+                testMode = message.testMode,
                 onEvent = { event -> handleWorkerEvent(event) { activeWorkers.remove(worker) } }
             )
             activeWorkers.add(worker)
@@ -126,6 +186,7 @@ class CoreTestService : Service() {
                 MessageUtil.sendMsg2UI(this, AppConfig.MSG_MEASURE_CONFIG_FINISH, event.status)
                 onWorkerDone()
                 if (activeWorkers.isEmpty()) {
+                    releaseDpiTestOwner()
                     NotificationHelper.stopForeground(this)
                     stopSelf()
                 }
@@ -138,7 +199,29 @@ class CoreTestService : Service() {
         val snapshot = ArrayList(activeWorkers)
         snapshot.forEach { it.cancel() }
         activeWorkers.clear()
+        releaseDpiTestOwner()
         NotificationHelper.stopForeground(this)
         stopSelf()
     }
+    /**
+     * Keep one ciadpi process alive for the complete batch. Speed-test configs are generated
+     * after this acquisition, so CoreConfigManager can safely insert the local SOCKS chain.
+     */
+    @Synchronized
+    private fun acquireDpiTestOwnerIfNeeded() {
+        if (!MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false) || dpiTestOwned) return
+
+        dpiTestOwned = ByeDpiManager.acquire(applicationContext, ByeDpiManager.Owner.TEST_SERVICE)
+        if (!dpiTestOwned) {
+            LogUtil.w(AppConfig.TAG, "CoreTestService: ByeDPI is unavailable; tests will use the normal path")
+        }
+    }
+
+    @Synchronized
+    private fun releaseDpiTestOwner() {
+        if (!dpiTestOwned) return
+        ByeDpiManager.release(ByeDpiManager.Owner.TEST_SERVICE)
+        dpiTestOwned = false
+    }
+
 }

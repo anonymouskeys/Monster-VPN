@@ -22,6 +22,7 @@ import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.navigation.NavigationView
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.tabs.TabLayoutMediator
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.core.CoreServiceManager
@@ -50,6 +51,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     val mainViewModel: MainViewModel by viewModels()
     private lateinit var groupPagerAdapter: GroupPagerAdapter
     private var tabMediator: TabLayoutMediator? = null
+    private var dpiSwitch: SwitchMaterial? = null
 
     private val requestVpnPermission = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         if (it.resultCode == RESULT_OK) {
@@ -195,7 +197,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             return
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN && MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING)) {
+        if (Build.VERSION.SDK_INT >= ANDROID_17_API_LEVEL && MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING)) {
             checkAndRequestPermission(PermissionType.ACCESS_LOCAL_NETWORK) {}
         }
 
@@ -239,14 +241,51 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
     override fun onResume() {
         super.onResume()
+        dpiSwitch?.isChecked = MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false)
     }
 
     override fun onPause() {
         super.onPause()
     }
 
+    private fun showDpiLevelDialog() {
+        val values = resources.getStringArray(R.array.dpi_level_values)
+        val labels = resources.getStringArray(R.array.dpi_level_entries)
+        val enabled = MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false)
+        val currentStrategy = MmkvManager.decodeSettingsString(AppConfig.PREF_DPI_STRATEGY, "auto_balanced")
+        val current = if (!enabled) 0 else values.indexOf(currentStrategy).takeIf { it > 0 } ?: 1
+        AlertDialog.Builder(this)
+            .setTitle(R.string.dpi_level_title)
+            .setSingleChoiceItems(labels, current) { dialog, which ->
+                val newEnabled = which != 0
+                MmkvManager.encodeSettings(AppConfig.PREF_DPI_ENABLED, newEnabled)
+                if (newEnabled) MmkvManager.encodeSettings(AppConfig.PREF_DPI_STRATEGY, values[which])
+                dpiSwitch?.isChecked = newEnabled
+                SettingsChangeManager.makeRestartService()
+                toast(if (newEnabled) R.string.toast_dpi_level_applied else R.string.toast_dpi_disabled)
+                dialog.dismiss()
+                if (mainViewModel.isRunning.value == true) restartV2Ray()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .setNeutralButton(R.string.dpi_expert) { _, _ ->
+                requestActivityLauncher.launch(Intent(this, SettingsActivity::class.java))
+            }
+            .show()
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
+
+        val dpiItem = menu.findItem(R.id.dpi_toggle)
+        dpiSwitch = dpiItem?.actionView?.findViewById(R.id.switch_dpi)
+        dpiSwitch?.apply {
+            isChecked = MmkvManager.decodeSettingsBool(AppConfig.PREF_DPI_ENABLED, false)
+            setOnClickListener { showDpiLevelDialog() }
+            setOnLongClickListener {
+                requestActivityLauncher.launch(Intent(this@MainActivity, SettingsActivity::class.java))
+                true
+            }
+        }
 
         val searchItem = menu.findItem(R.id.search_view)
         if (searchItem != null) {
@@ -347,9 +386,15 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             true
         }
 
+        R.id.tcp_ping_all -> {
+            toast(getString(R.string.connection_test_testing_count, mainViewModel.serversCache.count()))
+            mainViewModel.testAllTcpPing()
+            true
+        }
+
         R.id.real_ping_all -> {
             toast(getString(R.string.connection_test_testing_count, mainViewModel.serversCache.count()))
-            mainViewModel.testAllRealPing()
+            mainViewModel.testAllHandshake()
             true
         }
 
@@ -735,7 +780,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             R.id.routing_setting -> requestActivityLauncher.launch(Intent(this, RoutingSettingActivity::class.java))
             R.id.user_asset_setting -> requestActivityLauncher.launch(Intent(this, UserAssetActivity::class.java))
             R.id.settings -> requestActivityLauncher.launch(Intent(this, SettingsActivity::class.java))
-            R.id.promotion -> Utils.openUri(this, "${Utils.decode(AppConfig.APP_PROMOTION_URL)}?t=${System.currentTimeMillis()}")
+            R.id.promotion -> Utils.openUri(this, AppConfig.TG_CHANNEL_URL)
             R.id.logcat -> startActivity(Intent(this, LogcatActivity::class.java))
             R.id.check_for_update -> startActivity(Intent(this, CheckUpdateActivity::class.java))
             R.id.backup_restore -> requestActivityLauncher.launch(Intent(this, BackupActivity::class.java))
@@ -749,5 +794,10 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     override fun onDestroy() {
         tabMediator?.detach()
         super.onDestroy()
+    }
+
+    private companion object {
+        // Android 17 is API 37. Literal avoids requiring compileSdk 37.
+        const val ANDROID_17_API_LEVEL = 37
     }
 }

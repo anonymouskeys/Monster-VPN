@@ -9,10 +9,12 @@ import androidx.preference.CheckBoxPreference
 import androidx.preference.EditTextPreference
 import androidx.preference.ListPreference
 import androidx.preference.PreferenceFragmentCompat
+import androidx.preference.SwitchPreferenceCompat
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.VPN
 import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.handler.MmkvManager
+import com.v2ray.ang.handler.SettingsChangeManager
 import com.v2ray.ang.helper.MmkvPreferenceDataStore
 import com.v2ray.ang.root.RootManager
 import com.v2ray.ang.util.Utils
@@ -46,6 +48,15 @@ class SettingsActivity : BaseActivity() {
         private val fragmentLength by lazy { findPreference<EditTextPreference>(AppConfig.PREF_FRAGMENT_LENGTH) }
         private val fragmentInterval by lazy { findPreference<EditTextPreference>(AppConfig.PREF_FRAGMENT_INTERVAL) }
         private val fragmentMaxSplit by lazy { findPreference<EditTextPreference>(AppConfig.PREF_FRAGMENT_MAXSPLIT) }
+
+        private val dpiEnabled by lazy { findPreference<SwitchPreferenceCompat>(AppConfig.PREF_DPI_ENABLED) }
+        private val dpiStrategy by lazy { findPreference<ListPreference>(AppConfig.PREF_DPI_STRATEGY) }
+        private val dpiSplitPosition by lazy { findPreference<EditTextPreference>(AppConfig.PREF_DPI_SPLIT_POSITION) }
+        private val dpiFakeTtl by lazy { findPreference<EditTextPreference>(AppConfig.PREF_DPI_FAKE_TTL) }
+        private val dpiFakeCount by lazy { findPreference<EditTextPreference>(AppConfig.PREF_DPI_FAKE_COUNT) }
+        private val dpiDelayMs by lazy { findPreference<EditTextPreference>(AppConfig.PREF_DPI_DELAY_MS) }
+        private val dpiPortsOnly by lazy { findPreference<CheckBoxPreference>(AppConfig.PREF_DPI_PORTS_80_443_ONLY) }
+        private val dpiExpertArgs by lazy { findPreference<EditTextPreference>(AppConfig.PREF_DPI_EXPERT_ARGS) }
 
         private val mode by lazy { findPreference<ListPreference>(AppConfig.PREF_MODE) }
         private val enableRootMode by lazy { findPreference<CheckBoxPreference>(AppConfig.PREF_ROOT_MODE_ENABLE) }
@@ -93,6 +104,30 @@ class SettingsActivity : BaseActivity() {
             fragment?.setOnPreferenceChangeListener { _, newValue ->
                 updateFragment(newValue as Boolean)
                 true
+            }
+
+            val dpiPreferences = listOf(
+                dpiEnabled,
+                dpiStrategy,
+                dpiSplitPosition,
+                dpiFakeTtl,
+                dpiFakeCount,
+                dpiDelayMs,
+                dpiPortsOnly,
+                dpiExpertArgs,
+            )
+            dpiPreferences.forEach { preference ->
+                preference?.setOnPreferenceChangeListener { pref, newValue ->
+                    when (pref) {
+                        is ListPreference -> {
+                            val index = pref.findIndexOfValue(newValue.toString())
+                            pref.summary = if (index >= 0) pref.entries[index] else newValue.toString()
+                        }
+                        is EditTextPreference -> pref.summary = newValue.toString()
+                    }
+                    SettingsChangeManager.makeRestartService()
+                    true
+                }
             }
 
             mode?.setOnPreferenceChangeListener { pref, newValue ->
