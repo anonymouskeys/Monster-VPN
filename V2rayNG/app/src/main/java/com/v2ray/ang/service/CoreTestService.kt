@@ -177,7 +177,20 @@ class CoreTestService : Service() {
             }
 
             is RealPingEvent.Result -> {
-                MmkvManager.encodeServerTestDelayMillis(event.guid, event.delayMillis)
+                val previous = MmkvManager.decodeServerAffiliationInfo(event.guid)?.testDelayMillis ?: 0L
+                val shouldPersist = event.delayMillis >= 0L
+                    || !event.transientFailure
+                    || previous <= 0L
+
+                if (shouldPersist) {
+                    MmkvManager.encodeServerTestDelayMillis(event.guid, event.delayMillis)
+                } else {
+                    LogUtil.i(
+                        AppConfig.TAG,
+                        "CoreTestService: keeping last good delay for ${event.guid}; " +
+                            "the new batch result was a transient transport failure"
+                    )
+                }
                 MessageUtil.sendMsg2UI(this, AppConfig.MSG_MEASURE_CONFIG_SUCCESS, event.guid)
             }
 

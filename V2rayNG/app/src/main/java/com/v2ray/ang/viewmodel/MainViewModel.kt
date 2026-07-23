@@ -183,7 +183,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val guids = serversCache.map { it.guid }.distinct()
         if (guids.isEmpty()) return
 
-        MmkvManager.clearAllTestDelayResults(guids)
+        // Keep the last known result visible until a new conclusive result arrives. Clearing the
+        // whole list here turned temporary DPI overload into permanent -1 values, even when the
+        // same profile had just passed an individual test.
         updateListAction.value = -1
         updateTestResultAction.value =
             getApplication<AngApplication>().getString(R.string.connection_runing_task_left, "0 / ${guids.size}")

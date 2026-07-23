@@ -1,7 +1,6 @@
 package com.v2ray.ang.service
 
 import android.content.Context
-import com.v2ray.ang.AppConfig
 import com.v2ray.ang.core.CoreConfigManager
 import com.v2ray.ang.core.CoreNativeManager
 import com.v2ray.ang.dpi.ByeDpiManager
@@ -12,7 +11,6 @@ import com.v2ray.ang.extension.isNotNullEmpty
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.handler.SpeedtestManager
-import com.v2ray.ang.util.LogUtil
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
@@ -22,18 +20,21 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.coroutineContext
-import kotlin.random.Random
 
 /**
  * Runs one cancellable batch of real-ping tests.
  *
- * DPI mode deliberately uses adaptive waves instead of launching one temporary Xray core per
- * configured executor thread forever. A healthy ciadpi listener is allowed to ramp up quickly;
- * EOF/closed-pipe/TLS-timeout bursts immediately reduce pressure and only the affected profiles
- * are retried. This keeps large (thousands of profiles) batches fast without turning temporary
- * listener overload into persistent -1 ms results.
+ * DPI testing uses a two-stage scheduler:
+ * 1. a fast parallel pass for every profile;
+ * 2. a narrow retry pass only for temporary transport failures.
+ *
+ * Retrying temporary failures immediately in the same busy pool caused a feedback loop: every
+ * timeout created another native Xray instance while the first one was still closing, producing
+ * EOF/closed-pipe storms and overwriting previously valid delays with -1. The second stage lets
+ * the native runtime drain before rechecking doubtful profiles at low concurrency.
  */
 class RealPingWorkerService(
     private val context: Context,
@@ -70,39 +71,96 @@ class RealPingWorkerService(
 
         val dpiRunning = ByeDpiManager.isRunning()
         val configuredConcurrency = SettingsManager.getRealPingConcurrency()
-        val concurrency = if (dpiRunning) {
-            configuredConcurrency.coerceIn(4, 10)
+        val firstPassConcurrency = if (dpiRunning) {
+            configuredConcurrency.coerceIn(4, 8)
         } else {
             configuredConcurrency.coerceIn(1, 64)
         }.coerceAtMost(guids.size)
 
-        if (dpiRunning) delay(250L)
+        if (dpiRunning) delay(300L)
 
-        // A worker pool emits each result immediately. The previous wave barrier waited for the
-        // slowest profile before updating progress, which looked frozen at 1 / 1 for minutes.
+        val transientQueue = ConcurrentLinkedQueue<String>()
         val nextIndex = AtomicInteger(0)
-        repeat(concurrency) { workerIndex ->
+
+        repeat(firstPassConcurrency) { workerIndex ->
             launch {
-                if (dpiRunning && workerIndex > 0) delay((workerIndex * 35L).coerceAtMost(250L))
+                if (dpiRunning && workerIndex > 0) {
+                    delay((workerIndex * 45L).coerceAtMost(280L))
+                }
                 while (true) {
                     coroutineContext.ensureActive()
                     val index = nextIndex.getAndIncrement()
                     if (index >= guids.size) break
 
-                    val result = testProfile(guids[index], dpiRunning)
-                    onEvent(RealPingEvent.Result(result.guid, result.delayMillis))
-                    val done = completedCount.incrementAndGet()
-                    onEvent(RealPingEvent.Progress("$done / ${guids.size}"))
+                    val result = testProfile(
+                        guid = guids[index],
+                        dpiRunning = dpiRunning,
+                        testUrl = SettingsManager.getDelayTestUrl()
+                    )
+                    if (result.transientFailure && dpiRunning) {
+                        transientQueue.add(result.guid)
+                    } else {
+                        publishFinal(result)
+                    }
+                }
+            }
+        }
 
-                    if (dpiRunning && result.transientFailure) delay(80L)
+        // Wait until every first-pass worker above has completed before entering the retry stage.
+        // coroutineScope waits for child jobs only when this block is about to return, therefore
+        // use small child scopes for explicit stage barriers.
+        while (nextIndex.get() < guids.size || completedCount.get() + transientQueue.size < guids.size) {
+            coroutineContext.ensureActive()
+            delay(50L)
+        }
+
+        if (transientQueue.isEmpty()) return@coroutineScope
+
+        // Give ciadpi and the native Xray instances time to close sockets from the fast pass.
+        delay(600L)
+
+        val retryGuids = transientQueue.toList()
+        val retryIndex = AtomicInteger(0)
+        val retryConcurrency = minOf(2, retryGuids.size)
+        repeat(retryConcurrency) { workerIndex ->
+            launch {
+                if (workerIndex > 0) delay(160L)
+                while (true) {
+                    coroutineContext.ensureActive()
+                    val index = retryIndex.getAndIncrement()
+                    if (index >= retryGuids.size) break
+
+                    val result = testProfile(
+                        guid = retryGuids[index],
+                        dpiRunning = true,
+                        testUrl = SettingsManager.getDelayTestUrl(true)
+                    )
+                    publishFinal(result)
+                    if (result.transientFailure) delay(120L)
                 }
             }
         }
     }
 
-    private suspend fun testProfile(guid: String, dpiRunning: Boolean): PingResult {
-        val failure = PingResult(guid, -1L, transientFailure = false)
-        val config = MmkvManager.decodeServerConfig(guid) ?: return failure
+    private fun publishFinal(result: PingResult) {
+        onEvent(
+            RealPingEvent.Result(
+                guid = result.guid,
+                delayMillis = result.delayMillis,
+                transientFailure = result.transientFailure
+            )
+        )
+        val done = completedCount.incrementAndGet()
+        onEvent(RealPingEvent.Progress("$done / ${guids.size}"))
+    }
+
+    private suspend fun testProfile(
+        guid: String,
+        dpiRunning: Boolean,
+        testUrl: String
+    ): PingResult {
+        val permanentFailure = PingResult(guid, -1L, transientFailure = false)
+        val config = MmkvManager.decodeServerConfig(guid) ?: return permanentFailure
 
         // A direct TCP pre-check bypasses ByeDPI. Keep it only for normal mode, otherwise it can
         // reject a profile that succeeds through the actual DPI chain.
@@ -119,31 +177,18 @@ class RealPingWorkerService(
                 config.serverPort.orEmpty().toInt(),
                 3000
             )
-            if (tcpTime <= -1L) return failure
+            if (tcpTime <= -1L) return permanentFailure
         }
 
         val configResult = CoreConfigManager.getV2rayConfig4Speedtest(context, guid)
-        if (!configResult.status) return failure
+        if (!configResult.status) return permanentFailure
 
-        val urls = if (dpiRunning) {
-            listOf(SettingsManager.getDelayTestUrl(), SettingsManager.getDelayTestUrl(true)).distinct()
-        } else {
-            listOf(SettingsManager.getDelayTestUrl())
-        }
-
-        var sawTransientFailure = false
-        // One primary request plus at most one fallback request. Three rounds over two URLs made
-        // four blocked profiles hold an entire wave for up to a minute.
-        for ((index, url) in urls.take(if (dpiRunning) 2 else 1).withIndex()) {
-            coroutineContext.ensureActive()
-            val measurement = CoreNativeManager.measureOutboundDelayDetailed(configResult.content, url)
-            if (measurement.delayMillis >= 0L) {
-                return PingResult(guid, measurement.delayMillis, transientFailure = false)
-            }
-            if (!measurement.isTransient) return failure
-            sawTransientFailure = true
-            if (index == 0 && urls.size > 1) delay(120L + Random.nextLong(20L, 100L))
-        }
-        return PingResult(guid, -1L, transientFailure = sawTransientFailure)
+        coroutineContext.ensureActive()
+        val measurement = CoreNativeManager.measureOutboundDelayDetailed(configResult.content, testUrl)
+        return PingResult(
+            guid = guid,
+            delayMillis = measurement.delayMillis,
+            transientFailure = measurement.delayMillis < 0L && measurement.isTransient
+        )
     }
 }
