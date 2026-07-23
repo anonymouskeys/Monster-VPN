@@ -177,21 +177,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Tests the real ping for all servers.
      */
+    fun testAllSmart() {
+        startBatchTest(TestServiceMessage.TEST_MODE_SMART, serversCache.map { it.guid }.distinct())
+    }
+
     fun testAllTcpPing() {
         startBatchTest(TestServiceMessage.TEST_MODE_TCP, serversCache.map { it.guid }.distinct())
     }
 
     fun testAllHandshake() {
-        // The intended workflow is TCP first, then protocol handshake only for reachable endpoints.
-        // A user may still run this directly; in that case all visible profiles are checked.
-        val visible = serversCache.map { it.guid }.distinct()
-        val tcpPassed = visible.filter {
-            (MmkvManager.decodeServerAffiliationInfo(it)?.testDelayMillis ?: -1L) >= 0L
-        }
-        startBatchTest(
-            TestServiceMessage.TEST_MODE_HANDSHAKE,
-            if (tcpPassed.isNotEmpty()) tcpPassed else visible
-        )
+        // Handshake is an independent, definitive protocol test. It must never depend on a
+        // previously cached TCP result; Smart Test owns the optional TCP pre-filter instead.
+        startBatchTest(TestServiceMessage.TEST_MODE_HANDSHAKE, serversCache.map { it.guid }.distinct())
     }
 
     private fun startBatchTest(testMode: String, guids: List<String>) {
