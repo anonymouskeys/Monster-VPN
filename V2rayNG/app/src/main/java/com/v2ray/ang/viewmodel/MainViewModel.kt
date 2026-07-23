@@ -178,26 +178,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      * Tests the real ping for all servers.
      */
     fun testAllRealPing() {
+        // Always send the exact visible snapshot. Resolving an empty list again inside the service
+        // races subscription imports and made a 146-profile request appear as a stale 1 / 1 job.
+        val guids = serversCache.map { it.guid }.distinct()
+        if (guids.isEmpty()) return
+
+        MmkvManager.clearAllTestDelayResults(guids)
+        updateListAction.value = -1
+        updateTestResultAction.value =
+            getApplication<AngApplication>().getString(R.string.connection_runing_task_left, "0 / ${guids.size}")
+
         MessageUtil.sendMsg2TestService(
             getApplication(),
-            TestServiceMessage(key = AppConfig.MSG_MEASURE_CONFIG_CANCEL)
-        )
-        MmkvManager.clearAllTestDelayResults(serversCache.map { it.guid }.toList())
-        updateListAction.value = -1
-
-        viewModelScope.launch(Dispatchers.Default) {
-            if (serversCache.isEmpty()) {
-                return@launch
-            }
-            MessageUtil.sendMsg2TestService(
-                getApplication(),
-                TestServiceMessage(
-                    key = AppConfig.MSG_MEASURE_CONFIG_START,
-                    subscriptionId = subscriptionId,
-                    serverGuids = if (keywordFilter.isNotEmpty()) serversCache.map { it.guid } else emptyList()
-                )
+            TestServiceMessage(
+                key = AppConfig.MSG_MEASURE_CONFIG_START,
+                subscriptionId = subscriptionId,
+                serverGuids = guids
             )
-        }
+        )
     }
 
     /**

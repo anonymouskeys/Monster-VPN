@@ -18,15 +18,12 @@ import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.coroutineContext
-import kotlin.math.max
-import kotlin.math.min
 import kotlin.random.Random
 
 /**
@@ -68,68 +65,38 @@ class RealPingWorkerService(
         job.cancel()
     }
 
-    private suspend fun runBatch() {
-        if (guids.isEmpty()) return
+    private suspend fun runBatch() = coroutineScope {
+        if (guids.isEmpty()) return@coroutineScope
 
         val dpiRunning = ByeDpiManager.isRunning()
         val configuredConcurrency = SettingsManager.getRealPingConcurrency()
-        val maximumConcurrency = if (dpiRunning) {
-            // ciadpi can sustain parallel work, but an unbounded burst of temporary Xray cores
-            // is what produced the closed-pipe storm seen in device logs.
-            configuredConcurrency.coerceIn(2, 12)
+        val concurrency = if (dpiRunning) {
+            configuredConcurrency.coerceIn(4, 10)
         } else {
             configuredConcurrency.coerceIn(1, 64)
-        }
-        var currentConcurrency = if (dpiRunning) min(4, maximumConcurrency) else maximumConcurrency
-        var cursor = 0
+        }.coerceAtMost(guids.size)
 
-        if (dpiRunning) {
-            // acquire() already verifies the listener, but a short quiet period prevents the first
-            // wave from racing native process startup on slower devices.
-            delay(250L)
-        }
+        if (dpiRunning) delay(250L)
 
-        while (cursor < guids.size) {
-            coroutineContext.ensureActive()
-            val end = min(cursor + currentConcurrency, guids.size)
-            val wave = guids.subList(cursor, end)
-            val results = wave.mapIndexed { index, guid ->
-                scope.async {
-                    // Do not make every temporary core hit ciadpi in the same millisecond.
-                    if (dpiRunning && index > 0) delay(Random.nextLong(20L, 90L))
-                    testProfile(guid, dpiRunning)
+        // A worker pool emits each result immediately. The previous wave barrier waited for the
+        // slowest profile before updating progress, which looked frozen at 1 / 1 for minutes.
+        val nextIndex = AtomicInteger(0)
+        repeat(concurrency) { workerIndex ->
+            launch {
+                if (dpiRunning && workerIndex > 0) delay((workerIndex * 35L).coerceAtMost(250L))
+                while (true) {
+                    coroutineContext.ensureActive()
+                    val index = nextIndex.getAndIncrement()
+                    if (index >= guids.size) break
+
+                    val result = testProfile(guids[index], dpiRunning)
+                    onEvent(RealPingEvent.Result(result.guid, result.delayMillis))
+                    val done = completedCount.incrementAndGet()
+                    onEvent(RealPingEvent.Progress("$done / ${guids.size}"))
+
+                    if (dpiRunning && result.transientFailure) delay(80L)
                 }
-            }.awaitAll()
-
-            results.forEach { result ->
-                onEvent(RealPingEvent.Result(result.guid, result.delayMillis))
-                val done = completedCount.incrementAndGet()
-                onEvent(RealPingEvent.Progress("$done / ${guids.size}"))
             }
-
-            if (dpiRunning) {
-                val transientFailures = results.count { it.transientFailure }
-                val failureRatio = transientFailures.toDouble() / results.size.coerceAtLeast(1)
-                val oldConcurrency = currentConcurrency
-                currentConcurrency = when {
-                    failureRatio >= 0.50 -> max(2, currentConcurrency / 2)
-                    failureRatio >= 0.25 -> max(2, currentConcurrency - 1)
-                    failureRatio == 0.0 -> min(maximumConcurrency, currentConcurrency + 2)
-                    failureRatio <= 0.10 -> min(maximumConcurrency, currentConcurrency + 1)
-                    else -> currentConcurrency
-                }
-                if (oldConcurrency != currentConcurrency) {
-                    LogUtil.i(
-                        AppConfig.TAG,
-                        "RealPing DPI concurrency $oldConcurrency -> $currentConcurrency " +
-                            "(transient=$transientFailures/${results.size})"
-                    )
-                }
-                // Let ciadpi drain sockets after an unhealthy wave; healthy waves continue nearly
-                // immediately, preserving throughput for 5000+ profile lists.
-                if (transientFailures > 0) delay(180L) else delay(25L)
-            }
-            cursor = end
         }
     }
 
@@ -165,24 +132,17 @@ class RealPingWorkerService(
         }
 
         var sawTransientFailure = false
-        val maxAttempts = if (dpiRunning) 3 else 1
-        repeat(maxAttempts) { attempt ->
+        // One primary request plus at most one fallback request. Three rounds over two URLs made
+        // four blocked profiles hold an entire wave for up to a minute.
+        for ((index, url) in urls.take(if (dpiRunning) 2 else 1).withIndex()) {
             coroutineContext.ensureActive()
-            for (url in urls) {
-                val measurement = CoreNativeManager.measureOutboundDelayDetailed(configResult.content, url)
-                if (measurement.delayMillis >= 0L) {
-                    return PingResult(guid, measurement.delayMillis, transientFailure = false)
-                }
-                if (!measurement.isTransient) {
-                    // Certificate/SNI/configuration errors will not become healthy by retrying and
-                    // should not slow a 5000-profile batch.
-                    return failure
-                }
-                sawTransientFailure = true
+            val measurement = CoreNativeManager.measureOutboundDelayDetailed(configResult.content, url)
+            if (measurement.delayMillis >= 0L) {
+                return PingResult(guid, measurement.delayMillis, transientFailure = false)
             }
-            if (attempt + 1 < maxAttempts) {
-                delay(250L * (attempt + 1) + Random.nextLong(40L, 160L))
-            }
+            if (!measurement.isTransient) return failure
+            sawTransientFailure = true
+            if (index == 0 && urls.size > 1) delay(120L + Random.nextLong(20L, 100L))
         }
         return PingResult(guid, -1L, transientFailure = sawTransientFailure)
     }

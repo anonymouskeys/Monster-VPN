@@ -132,10 +132,15 @@ class CoreTestService : Service() {
         }
 
         if (guidsList.isNotEmpty()) {
-            // Only one batch may own the temporary-core scheduler. Repeated taps or duplicate
-            // start intents used to create overlapping workers and multiplied Xray/ciadpi load.
-            val previous = ArrayList(activeWorkers)
-            activeWorkers.clear()
+            // A second tap while a batch is alive must not cancel and restart hundreds of tests.
+            // Keep the current session and report its state instead.
+            if (activeWorkers.isNotEmpty()) {
+                LogUtil.i(AppConfig.TAG, "CoreTestService: batch already running; duplicate start ignored")
+                return
+            }
+
+            val total = guidsList.distinct().size
+            handleWorkerEvent(RealPingEvent.Progress("0 / $total")) {}
 
             acquireDpiTestOwnerIfNeeded()
 
@@ -149,14 +154,10 @@ class CoreTestService : Service() {
             lateinit var worker: RealPingWorkerService
             worker = RealPingWorkerService(
                 context = this,
-                guids = guidsList,
+                guids = guidsList.distinct(),
                 onEvent = { event -> handleWorkerEvent(event) { activeWorkers.remove(worker) } }
             )
-            // Register the replacement before cancelling old workers. Their asynchronous Finish
-            // callbacks must not observe an empty list and release TEST_SERVICE ownership between
-            // two immediately consecutive batches.
             activeWorkers.add(worker)
-            previous.forEach { it.cancel() }
             worker.start()
         } else {
             NotificationHelper.stopForeground(this)
