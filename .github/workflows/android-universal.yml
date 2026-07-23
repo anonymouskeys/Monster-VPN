@@ -100,7 +100,7 @@ jobs:
           echo "AndroidLibXrayLite release: $TAG"
 
       - name: Download libv2ray
-        uses: robinraju/release-downloader@v1.11
+        uses: robinraju/release-downloader@v1.13
         with:
           repository: 2dust/AndroidLibXrayLite
           tag: ${{ steps.xray.outputs.tag }}
