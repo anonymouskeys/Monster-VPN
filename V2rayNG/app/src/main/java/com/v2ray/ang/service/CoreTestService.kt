@@ -16,8 +16,27 @@ import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.MessageUtil
 import com.v2ray.ang.util.NotificationHelper
 import java.util.Collections
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CoroutineName
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class CoreTestService : Service() {
+
+    // Service callbacks run on Android's main thread. ByeDpiManager.acquire() starts a native
+    // process and probes its local SOCKS port with a blocking Socket.connect(), so all test
+    // commands must be dispatched to IO before touching the DPI runtime.
+    private val serviceJob = SupervisorJob()
+    private val serviceScope = CoroutineScope(
+        serviceJob + Dispatchers.IO + CoroutineName("CoreTestService")
+    )
+    private val commandGeneration = AtomicInteger(0)
+    private val commandMutex = Mutex()
 
     // manage active batch workers so each batch is independent and cancellable
     private val activeWorkers = Collections.synchronizedList(mutableListOf<RealPingWorkerService>())
@@ -47,6 +66,8 @@ class CoreTestService : Service() {
      */
     override fun onDestroy() {
         LogUtil.i(AppConfig.TAG, "CoreTestService is being destroyed, cancelling ${activeWorkers.size} active workers")
+        commandGeneration.incrementAndGet()
+        serviceScope.cancel()
         // cancel any active workers
         val snapshot = ArrayList(activeWorkers)
         snapshot.forEach { it.cancel() }
@@ -70,17 +91,31 @@ class CoreTestService : Service() {
             return START_NOT_STICKY
         }
 
+        val generation = commandGeneration.incrementAndGet()
         when (message.key) {
-            AppConfig.MSG_MEASURE_CONFIG_START -> handleMeasureStart(message, startId)
-            AppConfig.MSG_MEASURE_CONFIG_CANCEL -> handleMeasureCancel()
+            AppConfig.MSG_MEASURE_CONFIG_START -> serviceScope.launch {
+                commandMutex.withLock {
+                    handleMeasureStart(message, startId, generation)
+                }
+            }
+            AppConfig.MSG_MEASURE_CONFIG_CANCEL -> serviceScope.launch {
+                commandMutex.withLock {
+                    handleMeasureCancel()
+                }
+            }
             else -> {
-                NotificationHelper.stopForeground(this); stopSelf(startId)
+                NotificationHelper.stopForeground(this)
+                stopSelf(startId)
             }
         }
         return START_NOT_STICKY
     }
 
-    private fun handleMeasureStart(message: TestServiceMessage, startId: Int) {
+    private fun handleMeasureStart(
+        message: TestServiceMessage,
+        startId: Int,
+        generation: Int
+    ) {
         LogUtil.i(AppConfig.TAG, "CoreTestService starting worker   subscription ${message.subscriptionId}")
 
         NotificationHelper.startForeground(
@@ -103,6 +138,13 @@ class CoreTestService : Service() {
             activeWorkers.clear()
 
             acquireDpiTestOwnerIfNeeded()
+
+            // A cancel or a newer start may arrive while the native process is starting. Do not
+            // publish an obsolete worker after the blocking readiness probe completes.
+            if (generation != commandGeneration.get() || serviceJob.isCancelled) {
+                if (activeWorkers.isEmpty()) releaseDpiTestOwner()
+                return
+            }
 
             lateinit var worker: RealPingWorkerService
             worker = RealPingWorkerService(
