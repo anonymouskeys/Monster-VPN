@@ -70,7 +70,7 @@ jobs:
 
       - name: Cache native library
         id: cache-hevtun
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: libs
           key: hevtun-${{ runner.os }}-${{ hashFiles('hev-socks5-tunnel/**', 'compile-hevtun.sh') }}
