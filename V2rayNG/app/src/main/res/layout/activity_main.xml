@@ -2,6 +2,7 @@
 <androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawer_layout"
+    android:background="@color/ak_background"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -12,11 +13,13 @@
         android:orientation="vertical">
 
         <com.google.android.material.appbar.AppBarLayout
+            android:background="@color/ak_surface"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
             <androidx.appcompat.widget.Toolbar
                 android:id="@+id/toolbar"
+                android:background="@color/ak_surface"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize" />
 
@@ -46,9 +49,13 @@
 
                     <com.google.android.material.tabs.TabLayout
                         android:id="@+id/tab_group"
+                        android:background="@color/ak_surface"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        app:tabIndicatorColor="@color/ak_purple"
                         app:tabIndicatorFullWidth="false"
+                        app:tabSelectedTextColor="@color/ak_text_primary"
+                        app:tabTextColor="@color/ak_text_secondary"
                         app:tabMode="scrollable"
                         app:tabTextAppearance="@style/TabLayoutTextStyle" />
 
@@ -119,10 +126,16 @@
 
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/nav_view"
-        android:layout_width="wrap_content"
+        android:layout_width="320dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
+        android:background="@drawable/monster_drawer_background"
         app:headerLayout="@layout/nav_header"
+        app:itemBackground="@drawable/monster_nav_item_background"
+        app:itemIconTint="@color/monster_nav_item"
+        app:itemTextColor="@color/monster_nav_item"
+        app:itemHorizontalPadding="18dp"
+        app:itemVerticalPadding="6dp"
         app:menu="@menu/menu_drawer">
 
     </com.google.android.material.navigation.NavigationView>
